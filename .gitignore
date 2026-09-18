@@ -1,0 +1,9 @@
+# Dependencias: se reinstalan con npm install
+node_modules/
+
+# Estado local de la CLI de Vercel
+.vercel/
+
+# Variables de entorno: nunca al repositorio
+.env
+.env.*

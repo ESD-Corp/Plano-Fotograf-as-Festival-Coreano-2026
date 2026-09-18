@@ -292,6 +292,9 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
   .candado.presionando .candado-carga{ transition:none; }
 }
 
+/* Separa lo que va encima del plano de las capas del propio dibujo. */
+.capas-sep{ height:1px; background:var(--linea); margin:8px 0; }
+
 .capas-aviso{
   margin:0; padding:20px 18px 24px; font-size:10px; line-height:2;
   letter-spacing:.12em; text-transform:uppercase; color:var(--texto-3);
@@ -498,7 +501,15 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
   background:rgba(3,3,4,.96); backdrop-filter:blur(8px);
 }
 .visor.oculto{ display:none; }
-.visor img{ max-width:86vw; max-height:78vh; border-radius:2px; display:block; }
+.visor img{
+  max-width:86vw; max-height:78vh; border-radius:2px; display:block;
+  animation:visor-entra .22s cubic-bezier(.32,.72,0,1) both;
+}
+@keyframes visor-entra{
+  from{ opacity:0; transform:translateX(var(--dx,0)); }
+  to  { opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion:reduce){ .visor img{ animation:none; } }
 .visor .vacio{
   width:min(60vw,440px); aspect-ratio:4/3; display:grid; place-items:center;
   border:1px dashed var(--linea-2); border-radius:3px; color:var(--texto-3);
@@ -515,6 +526,8 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
   color:var(--texto-2); }
 .visor-pie .rumbo{ margin-top:8px; font-size:9.5px; letter-spacing:.2em;
   color:var(--texto-3); }
+.visor-cuenta{ margin-top:6px; font-size:9px; letter-spacing:.24em;
+  color:var(--texto-3); font-variant-numeric:tabular-nums; }
 .visor-cerrar{
   position:fixed; top:22px; right:26px; background:none; border:none;
   color:var(--texto-2); font-size:28px; cursor:pointer; line-height:1; z-index:41;
@@ -529,6 +542,13 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
 }
 .ayuda b{ color:var(--texto-2); font-weight:400; }
 .ayuda.oculta{ display:none; }
+
+/* --- crédito ------------------------------------------------------- */
+.credito{
+  position:fixed; right:22px; bottom:26px; z-index:15; margin:0;
+  font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--texto-3); pointer-events:none; white-space:nowrap;
+}
 
 /* --- aviso -------------------------------------------------------- */
 .aviso{
@@ -629,6 +649,11 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
   .visor-cerrar{ min-width:44px; min-height:44px; }
 
   .ayuda{ display:none; }
+  /* Sobre la barra anclada, y por debajo del panel de la marca. */
+  .credito{
+    right:12px; bottom:calc(66px + env(safe-area-inset-bottom));
+    font-size:8px; letter-spacing:.1em;
+  }
 }
 
 /* --- hoja inferior ------------------------------------------------- */

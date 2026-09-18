@@ -223,6 +223,7 @@ function pintarMarcas() {
   const e = escalaMarca();
 
   lista.forEach(m => {
+    if (capas.ocultas.includes(m.tipo === 'nota' ? 'notas' : 'fotos')) return;
     const [sx, sy] = aPantalla(m.x, m.y);
     if (sx < -120 || sx > innerWidth + 120 || sy < -120 || sy > innerHeight + 120) return;
 
@@ -784,8 +785,13 @@ $('#globo-imagen').addEventListener('click', () => {
   if (m) abrirVisor(m);
 });
 /* --- visor -------------------------------------------------------- */
-function abrirVisor(m) {
+let visorActual = null;
+
+function abrirVisor(m, paso) {
+  visorActual = m.id;
   const cuerpo = $('#visor-cuerpo');
+  /* La siguiente entra desde el lado hacia el que se ha deslizado. */
+  cuerpo.style.setProperty('--dx', paso ? (paso > 0 ? '26px' : '-26px') : '0px');
   const ruta = rutaFoto(m);
   cuerpo.innerHTML = ruta
     ? `<img src="${escapar(ruta)}" alt="${escapar(m.titulo)}"
@@ -795,11 +801,59 @@ function abrirVisor(m) {
   $('#visor-nota').textContent = m.nota || '';
   $('#visor-rumbo').textContent = m.tipo === 'foto'
     ? 'Cámara hacia ' + Math.round(m.rumbo || 0) + '° ' + cardinal(m.rumbo || 0) : '';
+
+  /* Cuántas hay y en cuál se está: sin eso, deslizar es a ciegas. */
+  const lista = fotosEnOrden();
+  const i = lista.findIndex(x => x.id === m.id);
+  $('#visor-cuenta').textContent = (m.tipo === 'foto' && lista.length > 1)
+    ? (i + 1) + ' / ' + lista.length : '';
+
   $('#visor').classList.remove('oculto');
 }
 const cerrarVisor = () => $('#visor').classList.add('oculto');
 $('#visor-cerrar').addEventListener('click', cerrarVisor);
-$('#visor').addEventListener('click', e => { if (e.target.id === 'visor') cerrarVisor(); });
+
+/* --- recorrer las fotografías desde el visor ------------------------
+   Con una foto abierta a pantalla completa, lo natural es pasar a la
+   siguiente sin volver al plano y buscar la marca de al lado.
+   ------------------------------------------------------------------ */
+const fotosEnOrden = () => marcas.filter(m => m.tipo === 'foto');
+
+function visorPasar(paso) {
+  const lista = fotosEnOrden();
+  if (lista.length < 2) return;
+  const i = lista.findIndex(m => m.id === visorActual);
+  const siguiente = lista[(((i < 0 ? 0 : i) + paso) % lista.length + lista.length) % lista.length];
+  seleccion = siguiente.id;
+  abrirVisor(siguiente, paso);
+  pintarMarcas();
+}
+
+/* Un desplazamiento lateral pasa de foto; uno corto o vertical, no. El
+   toque suelto sobre el fondo sigue cerrando, pero un gesto no. */
+const DESLIZ_MINIMO = 55;
+let tocandoVisor = null, huboDesliz = false;
+
+$('#visor').addEventListener('pointerdown', e => {
+  tocandoVisor = { x: e.clientX, y: e.clientY };
+  huboDesliz = false;
+});
+
+$('#visor').addEventListener('pointerup', e => {
+  if (!tocandoVisor) return;
+  const dx = e.clientX - tocandoVisor.x;
+  const dy = e.clientY - tocandoVisor.y;
+  tocandoVisor = null;
+  if (Math.abs(dx) > DESLIZ_MINIMO && Math.abs(dx) > Math.abs(dy) * 1.6) {
+    huboDesliz = true;
+    visorPasar(dx < 0 ? 1 : -1);
+  }
+});
+
+$('#visor').addEventListener('click', e => {
+  if (huboDesliz) { huboDesliz = false; return; }
+  if (e.target.id === 'visor') cerrarVisor();
+});
 
 function cardinal(g) {
   return ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(g / 45) % 8];
@@ -1016,6 +1070,13 @@ $('#entrada-json').addEventListener('change', e => {
    ------------------------------------------------------------------ */
 const CLAVE_CAPAS = 'plano-fray-anton-capas';
 
+/* Lo que va encima del dibujo. No son rutas del SVG sino marcas, así
+   que se apagan al pintarlas; van primero porque están arriba. */
+const CAPAS_MARCAS = [
+  { clave: 'fotos', nombre: 'Fotografías', muestra: '#e4322b', tipo: 'foto' },
+  { clave: 'notas', nombre: 'Notas',       muestra: '#d9b85c', tipo: 'nota' },
+];
+
 /* Los identificadores son los que escribe el vectorizador; los nombres,
    los de la leyenda del propio plano. */
 const CAPAS = [
@@ -1037,7 +1098,7 @@ function cargarCapas() {
   try {
     const d = JSON.parse(localStorage.getItem(CLAVE_CAPAS) || '{}');
     if (Array.isArray(d.ocultas)) capas.ocultas = d.ocultas.filter(
-      c => CAPAS.some(x => x.clave === c));
+      c => CAPAS.concat(CAPAS_MARCAS).some(x => x.clave === c));
     if (Number.isFinite(d.opacidad)) capas.opacidad = Math.min(100, Math.max(10, d.opacidad));
   } catch (e) {
     /* Sin preferencias guardadas: todo visible al 100 %. */
@@ -1100,7 +1161,7 @@ function aplicarOpacidad() {
   $('#opacidad-valor').textContent = capas.opacidad + '%';
 }
 
-function filaCapa(capa) {
+function filaCapa(capa, sinAislar) {
   const oculta = capas.ocultas.includes(capa.clave);
   const aislada = capas.aislada === capa.clave;
 
@@ -1128,13 +1189,21 @@ function filaCapa(capa) {
   solo.title = aislada ? 'Volver a mostrar el resto' : 'Ver solo esta capa';
   solo.addEventListener('click', () => aislarCapa(capa.clave));
 
-  fila.append(ver, solo);
+  fila.append(ver);
+  if (!sinAislar) fila.append(solo);
   return fila;
 }
 
 function pintarCapas() {
   const lista = $('#capas-lista');
   lista.textContent = '';
+
+  /* Estas funcionan aunque el dibujo no se haya podido traer en línea. */
+  CAPAS_MARCAS.forEach(capa => lista.appendChild(filaCapa(capa, true)));
+
+  const franja = document.createElement('span');
+  franja.className = 'capas-sep';
+  lista.appendChild(franja);
 
   if (!svgPlano) {
     const aviso = document.createElement('p');
@@ -1152,7 +1221,7 @@ function alternarCapa(clave) {
   const i = capas.ocultas.indexOf(clave);
   if (i === -1) capas.ocultas.push(clave); else capas.ocultas.splice(i, 1);
   capas.aislada = null;              // encender algo sale del aislamiento
-  guardarCapas(); aplicarCapas(); pintarCapas();
+  guardarCapas(); aplicarCapas(); pintarMarcas(); pintarCapas();
 }
 
 function aislarCapa(clave) {
@@ -1301,6 +1370,13 @@ $('#menos').addEventListener('click', () => zoom(1 / 1.4, innerWidth / 2, innerH
 
 addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+
+  /* Con el visor abierto, las flechas recorren las fotografías. */
+  if (!$('#visor').classList.contains('oculto')) {
+    if (e.key === 'ArrowRight') { e.preventDefault(); visorPasar(1); return; }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); visorPasar(-1); return; }
+  }
+
   const k = e.key.toLowerCase();
   if (k === 'escape') {
     cerrarVisor(); cerrarGlobo(); cerrarPanel(); alternarGaleria(false);

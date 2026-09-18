@@ -30,7 +30,12 @@
   <section class="galeria oculta" id="galeria" aria-label="Galería de fotografías">
     <div class="galeria-cab">
       <h2>Fotografías</h2>
-      <button class="cerrar" id="cerrar-galeria" title="Cerrar (G)">×</button>
+      <div class="galeria-acciones">
+        <button class="btn" id="anadir-fotos" title="Añadir fotografías al plano">
+          <svg viewBox="0 0 24 24"><path d="M11 3h2v7h7v2h-7v7h-2v-7H4v-2h7V3Z"/></svg><span>Añadir fotografías</span>
+        </button>
+        <button class="cerrar" id="cerrar-galeria" title="Cerrar (G)">×</button>
+      </div>
     </div>
     <div class="galeria-rejilla" id="galeria-rejilla"></div>
   </section>
@@ -111,6 +116,7 @@
 </div>
 
 <input type="file" id="entrada-archivo" accept="image/*" hidden>
+<input type="file" id="entrada-fotos" accept="image/*" multiple hidden>
 <input type="file" id="entrada-json" accept="application/json,.json" hidden>
 
 <script src="assets/js/plano.js"></script>

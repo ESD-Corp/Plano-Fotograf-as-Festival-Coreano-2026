@@ -59,6 +59,17 @@ html,body{
   0 2px 8px rgba(0,0,0,.7); border-radius:2px; width:17px; height:17px;
 }
 .marca.es-nota .punto svg{ fill:#241d07; }
+
+/* Foto añadida desde la galería, aún sin situar: borde discontinuo para
+   que se vea de un vistazo que ese punto no es el de la toma. */
+.marca.pendiente .punto{
+  background:var(--nota); border-style:dashed;
+  box-shadow:0 0 0 3px rgba(217,184,92,.22), 0 2px 8px rgba(0,0,0,.7);
+}
+.marca.pendiente .punto svg{ fill:#241d07; }
+.marca.pendiente.activa .punto{
+  box-shadow:0 0 0 5px rgba(217,184,92,.32), 0 2px 12px rgba(0,0,0,.8);
+}
 .marca .rotulo{
   position:absolute; left:26px; top:50%; transform:translateY(-50%);
   white-space:nowrap; font-size:10px; letter-spacing:.14em;
@@ -127,8 +138,9 @@ html,body{
 .galeria::-webkit-scrollbar-thumb{ background:var(--linea-2); border-radius:3px; }
 .galeria-cab{
   display:flex; align-items:center; justify-content:space-between;
-  padding:13px 18px 0;
+  gap:12px; padding:13px 18px 0;
 }
+.galeria-acciones{ display:flex; align-items:center; gap:10px; }
 .galeria-cab h2{
   margin:0; font-size:9.5px; font-weight:400; letter-spacing:.22em;
   text-transform:uppercase; color:var(--texto-2);
@@ -178,6 +190,13 @@ html,body{
   padding:6px 9px 9px;
 }
 .ficha-rumbo{ font-size:9px; letter-spacing:.14em; color:var(--texto-3); }
+
+/* Fotografías que todavía no saben desde dónde se tomaron. Van en el
+   ámbar de las notas, que es el color de «esto pide atención», y no en
+   el rojo de las marcas ya colocadas. */
+.ficha.pendiente{ border-color:rgba(217,184,92,.5); }
+.ficha-rumbo.pendiente{ color:var(--nota); }
+.cuenta.pendiente{ color:var(--nota); }
 .situar{
   background:none; border:1px solid var(--linea); color:var(--texto-3);
   border-radius:2px; padding:4px 8px; cursor:pointer;
@@ -354,4 +373,8 @@ html,body{
   .menu{ grid-template-columns:1fr; }
   .menu-marca, .menu-acciones{ display:none; }
   .menu-centro{ flex-wrap:wrap; justify-content:center; }
+  /* El rótulo del botón no cabe junto al título de la galería: queda el
+     signo de más, que con el título «Fotografías» al lado se entiende. */
+  #anadir-fotos span{ display:none; }
+  #anadir-fotos{ padding:6px 8px; }
 }

@@ -112,6 +112,10 @@ function normalizar(m) {
     titulo: String(m.titulo == null ? '' : m.titulo),
     nota: String(m.nota == null ? '' : m.nota),
     archivo: String(m.archivo == null ? '' : m.archivo),
+    /* Una foto subida desde la galería todavía no sabe desde dónde se
+       tomó. Lo que no lo diga se da por situado: es lo que eran todas
+       las marcas antes de que existiera este campo. */
+    situada: m.situada !== false,
   };
 }
 
@@ -210,12 +214,16 @@ function pintarMarcas() {
     if (sx < -120 || sx > innerWidth + 120 || sy < -120 || sy > innerHeight + 120) return;
 
     const d = document.createElement('div');
+    /* Una foto sin situar no apunta a ninguna parte: se distingue y no
+       se le dibuja el cono, que sería una dirección inventada. */
+    const pendiente = m.tipo === 'foto' && !m.situada;
     d.className = 'marca' + (m.tipo === 'nota' ? ' es-nota' : '')
+                + (pendiente ? ' pendiente' : '')
                 + (seleccion === m.id ? ' activa' : '');
     d.style.left = sx + 'px';
     d.style.top  = sy + 'px';
     d.dataset.id = m.id;
-    d.innerHTML = (m.tipo === 'foto' ? cono(m.rumbo || 0) : '')
+    d.innerHTML = (m.tipo === 'foto' && !pendiente ? cono(m.rumbo || 0) : '')
       + '<div class="punto">' + (m.tipo === 'nota' ? ICONO_NOTA : ICONO_FOTO) + '</div>'
       + (m.titulo ? `<div class="rotulo">${escapar(m.titulo)}</div>` : '');
     capa.appendChild(d);
@@ -316,7 +324,7 @@ lienzo.addEventListener('pointerdown', e => {
     const [px, py] = aPlano(e.clientX, e.clientY);
     borrador = {
       id: nuevoId(), tipo: herramienta, x: px, y: py, rumbo: 0,
-      titulo: '', nota: '', archivo: ''
+      titulo: '', nota: '', archivo: '', situada: true
     };
     if (herramienta === 'foto') orientando = borrador;
     pintarMarcas();
@@ -401,7 +409,7 @@ function soltar(e) {
     if (m) guardar(m);
   } else if (moviendo) {
     const m = moviendo.m;
-    if (moviendo.movido) { guardar(m); }
+    if (moviendo.movido) { m.situada = true; guardar(m); }
     else if (esSegundoClic(m.id)) {
       seleccion = m.id;
       if (m.tipo === 'foto') abrirVisor(m); else abrirPanel();
@@ -458,7 +466,7 @@ lienzo.addEventListener('drop', e => {
   if (!f) return;
   const [px, py] = aPlano(e.clientX, e.clientY);
   const m = { id: nuevoId(), tipo: 'foto', x: px, y: py, rumbo: 0,
-              titulo: '', nota: '', archivo: '' };
+              titulo: '', nota: '', archivo: '', situada: true };
   marcas.push(m); seleccion = m.id;
   pintarMarcas();
   adjuntar(m, f);
@@ -552,12 +560,27 @@ async function subir(archivo) {
 
 /* Asocia una imagen a una marca: se ve al instante, y si hay Blob
    conectado se sube y la marca pasa a apuntar a la URL definitiva. */
-async function adjuntar(m, f) {
+async function adjuntar(m, f, opciones) {
+  /* En una tanda de la galería no se abre el panel de cada foto ni se
+     avisa una por una: lo hace `anadirFotos` al terminar. */
+  const callado = Boolean(opciones && opciones.callado);
+
   recordarPreview(m.id, f);
   m.archivo = f.name;
   if (!m.titulo) m.titulo = f.name.replace(/\.[^.]+$/, '');
   guardar(m);
-  abrirPanel();
+  if (!callado) abrirPanel();
+
+  if (callado && nube.blob) {
+    try {
+      m.archivo = await subir(f);
+      guardar(m);
+    } catch (e) {
+      avisar('No se pudo subir «' + f.name + '» (' + e.message + ')', 5400);
+    }
+    return;
+  }
+  if (callado) return;
 
   if (!nube.blob) {
     /* Sin Blob la marca solo guarda el nombre y la foto se busca en
@@ -715,9 +738,14 @@ function ficha(m) {
   ver.append(marco, titulo);
   ver.addEventListener('click', () => { seleccion = m.id; abrirVisor(m); });
 
+  /* Sin situar, el rumbo no significa nada todavía: en su lugar se dice
+     lo que le falta a la marca. */
   const rumbo = document.createElement('span');
-  rumbo.className = 'ficha-rumbo';
-  rumbo.textContent = Math.round(m.rumbo || 0) + '° ' + cardinal(m.rumbo || 0);
+  rumbo.className = 'ficha-rumbo' + (m.situada ? '' : ' pendiente');
+  rumbo.textContent = m.situada
+    ? Math.round(m.rumbo || 0) + '° ' + cardinal(m.rumbo || 0)
+    : 'Sin situar';
+  if (!m.situada) art.classList.add('pendiente');
 
   const ir = document.createElement('button');
   ir.className = 'situar';
@@ -736,7 +764,9 @@ function ficha(m) {
 function pintarGaleria() {
   const rejilla = $('#galeria-rejilla');
   rejilla.textContent = '';
-  const fotos = marcas.filter(m => m.tipo === 'foto');
+  /* Las que faltan por situar van delante: son las que piden trabajo. */
+  const fotos = marcas.filter(m => m.tipo === 'foto')
+    .sort((a, b) => Number(a.situada) - Number(b.situada));
 
   if (!fotos.length) {
     const vacia = document.createElement('p');
@@ -767,10 +797,57 @@ function situar(m) {
 function indicarCuenta() {
   const fotos = marcas.filter(m => m.tipo === 'foto').length;
   const notas = marcas.length - fotos;
+  const pendientes = marcas.filter(m => m.tipo === 'foto' && !m.situada).length;
   const partes = [fotos === 1 ? '1 fotografía' : fotos + ' fotografías'];
   if (notas) partes.push(notas === 1 ? '1 nota' : notas + ' notas');
-  $('#cuenta').textContent = partes.join(' · ');
+  if (pendientes) partes.push(pendientes + ' sin situar');
+  const etiqueta = $('#cuenta');
+  etiqueta.textContent = partes.join(' · ');
+  etiqueta.classList.toggle('pendiente', pendientes > 0);
 }
+
+/* --- añadir fotografías desde la galería ---------------------------
+   Sin pasar por el plano: entran como marcas sin situar, aparcadas en
+   el centro de lo que se está viendo, y se arrastran después hasta el
+   punto desde donde se tomaron.
+   ------------------------------------------------------------------ */
+function aparcar(indice) {
+  const sup = alturaMenu();
+  const [cx, cy] = aPlano(innerWidth / 2, sup + (innerHeight - sup) / 2);
+  const paso = 42, porFila = 5;
+  const x = cx + ((indice % porFila) - (porFila - 1) / 2) * paso;
+  const y = cy + (Math.floor(indice / porFila) - 1) * paso;
+  return [Math.min(ANCHO, Math.max(0, x)), Math.min(ALTO, Math.max(0, y))];
+}
+
+async function anadirFotos(archivos) {
+  const yaPendientes = marcas.filter(m => m.tipo === 'foto' && !m.situada).length;
+  let n = 0;
+
+  for (const f of archivos) {
+    const [x, y] = aparcar(yaPendientes + n);
+    const m = { id: nuevoId(), tipo: 'foto', x, y, rumbo: 0,
+                titulo: '', nota: '', archivo: '', situada: false };
+    marcas.push(m);
+    n++;
+    if (nube.blob) avisar(`Subiendo ${n} de ${archivos.length}…`);
+    await adjuntar(m, f, { callado: true });
+    pintarMarcas();
+  }
+
+  refrescarInventario();
+  avisar(n === 1
+    ? 'Una fotografía añadida. Arrástrala en el plano hasta el punto desde donde se tomó'
+    : `${n} fotografías añadidas. Arrástralas en el plano hasta el punto desde donde se tomaron`,
+    6500);
+}
+
+$('#anadir-fotos').addEventListener('click', () => $('#entrada-fotos').click());
+$('#entrada-fotos').addEventListener('change', e => {
+  const archivos = [...e.target.files].filter(f => f.type.startsWith('image/'));
+  e.target.value = '';                 // permite reelegir los mismos archivos
+  if (archivos.length) anadirFotos(archivos);
+});
 
 /* Lo que hay que rehacer cuando cambia la colección de marcas. */
 function refrescarInventario() {

@@ -34,6 +34,7 @@ function revisar(m) {
   if (String(m.titulo ?? '').length > LARGO_TEXTO) return 'El título es demasiado largo';
   if (String(m.nota ?? '').length > LARGO_TEXTO) return 'La nota es demasiado larga';
   if (String(m.archivo ?? '').length > LARGO_ARCHIVO) return 'La referencia del archivo es demasiado larga';
+  if (m.situada != null && typeof m.situada !== 'boolean') return 'Valor inválido en situada';
   return null;
 }
 
@@ -80,7 +81,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       const marcas = await q`
-        SELECT id, tipo, x, y, rumbo, titulo, nota, archivo
+        SELECT id, tipo, x, y, rumbo, titulo, nota, archivo, situada
         FROM marcas ORDER BY actualizado ASC`;
       return res.status(200).json({ nube: true, marcas });
     }
@@ -88,10 +89,10 @@ export default async function handler(req, res) {
     if (marca) {
       const m = marca;
       await q`
-        INSERT INTO marcas (id, tipo, x, y, rumbo, titulo, nota, archivo, actualizado)
+        INSERT INTO marcas (id, tipo, x, y, rumbo, titulo, nota, archivo, situada, actualizado)
         VALUES (${m.id}, ${m.tipo}, ${m.x}, ${m.y}, ${m.rumbo},
                 ${String(m.titulo ?? '')}, ${String(m.nota ?? '')},
-                ${String(m.archivo ?? '')}, now())
+                ${String(m.archivo ?? '')}, ${m.situada !== false}, now())
         ON CONFLICT (id) DO UPDATE SET
           tipo    = EXCLUDED.tipo,
           x       = EXCLUDED.x,
@@ -100,6 +101,7 @@ export default async function handler(req, res) {
           titulo  = EXCLUDED.titulo,
           nota    = EXCLUDED.nota,
           archivo = EXCLUDED.archivo,
+          situada = EXCLUDED.situada,
           actualizado = now()`;
       return res.status(200).json({ ok: true });
     }

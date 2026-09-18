@@ -33,6 +33,18 @@ la galería y lleva el plano hasta el punto desde donde se tomó, con la marca y
 
 A la derecha de la barra superior está siempre la cuenta de lo que hay marcado.
 
+### Cargar fotografías de golpe
+
+**Añadir fotografías**, en la cabecera de la galería, admite varias a la vez. Es el camino
+cuando llegas con la tarjeta llena y todavía no has decidido de dónde salió cada toma.
+
+Una foto cargada así no sabe desde dónde se tomó, y el plano no se lo inventa: entra como marca
+**sin situar**, en ámbar y sin cono, aparcada en el centro de lo que estés viendo. Arrástrala
+en el plano hasta el punto de la toma y pasa a ser una marca normal, en rojo y con su cono.
+
+Las que faltan por situar salen primero en la galería y se cuentan aparte en la barra superior,
+así que se ve de un vistazo lo que queda por colocar.
+
 ## Notas
 
 Pulsa **Nota** (atajo **N**) y marca el punto. Salen en ámbar, sin cono, porque una nota no
@@ -85,7 +97,8 @@ Hay una tercera variable, `PLANO_CLAVE`, que no la pone Vercel: se escribe a man
 rutas con contraseña. Más abajo.
 
 Al enlazarlos al proyecto, Vercel pone las variables solo. No hay que crear la tabla: se crea
-sola la primera vez que se guarda una marca.
+sola la primera vez que se guarda una marca, y si ya existía de una versión anterior se le
+añaden las columnas que le falten, sin tocar lo que hubiera dentro.
 
 Las rutas:
 

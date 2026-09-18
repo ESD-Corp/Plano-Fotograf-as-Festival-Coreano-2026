@@ -22,6 +22,17 @@ su marca en ese punto y solo queda orientarla.
 **Doble clic** en cualquier marca roja abre la imagen a pantalla completa, con su título, su
 nota y el rumbo de la cámara.
 
+## La galería
+
+El botón **Galería** de la barra superior (atajo **G**) despliega todas las fotografías juntas,
+para repasar lo que hay sin ir marca por marca. Cada ficha lleva el título y el rumbo, y las que
+todavía no tienen imagen —o apuntan a un archivo que falta— lo dicen en su recuadro.
+
+Pulsar la miniatura abre la fotografía a pantalla completa. **Situar** hace lo contrario: cierra
+la galería y lleva el plano hasta el punto desde donde se tomó, con la marca ya seleccionada.
+
+A la derecha de la barra superior está siempre la cuenta de lo que hay marcado.
+
 ## Notas
 
 Pulsa **Nota** (atajo **N**) y marca el punto. Salen en ámbar, sin cono, porque una nota no
@@ -118,6 +129,7 @@ Sin `PLANO_CLAVE` definida nada cambia: las rutas quedan abiertas como hasta aho
 | **V** | mover y seleccionar |
 | **F** | insertar fotografía |
 | **N** | dejar una nota |
+| **G** | abrir y cerrar la galería |
 | **E** | encuadrar el plano |
 | **H** | ocultar la ayuda |
 | **Supr** | borrar la marca seleccionada |

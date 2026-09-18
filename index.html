@@ -8,6 +8,30 @@
 </head>
 <body>
 
+<!-- MENÚ SUPERIOR Y GALERÍA ------------------------------------------>
+<div class="superior">
+  <header class="menu" id="menu">
+    <div class="menu-marca">
+      <b>Monumento a Fray Antón</b>
+      <span>Santo Domingo · Festival Coreano</span>
+    </div>
+    <div class="menu-acciones">
+      <span class="cuenta" id="cuenta"></span>
+      <button class="btn" id="abrir-galeria" title="Galería de fotografías (G)">
+        <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z"/></svg>Galería
+      </button>
+    </div>
+  </header>
+
+  <section class="galeria oculta" id="galeria" aria-label="Galería de fotografías">
+    <div class="galeria-cab">
+      <h2>Fotografías</h2>
+      <button class="cerrar" id="cerrar-galeria" title="Cerrar (G)">×</button>
+    </div>
+    <div class="galeria-rejilla" id="galeria-rejilla"></div>
+  </section>
+</div>
+
 <div id="lienzo">
   <img id="mapa" src="fondo/plano-fondo.svg" alt="Plano del Monumento a Fray Antón">
   <div id="marcas"></div>
@@ -79,7 +103,7 @@
 
 <div class="ayuda" id="ayuda">
   <b>arrastrar</b> mover · <b>rueda</b> zoom · <b>doble clic</b> en una marca abre la foto<br>
-  <b>F</b> foto · <b>N</b> nota · <b>V</b> mover · <b>E</b> encuadrar · <b>H</b> ocultar
+  <b>F</b> foto · <b>N</b> nota · <b>V</b> mover · <b>G</b> galería · <b>E</b> encuadrar · <b>H</b> ocultar
 </div>
 
 <input type="file" id="entrada-archivo" accept="image/*" hidden>

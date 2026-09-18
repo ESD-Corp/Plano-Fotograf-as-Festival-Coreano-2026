@@ -120,6 +120,7 @@ function normalizar(m) {
    una peticion por tecla. */
 function guardar(m) {
   guardarLocal();
+  refrescarInventario();
   if (m && nube.base) sincronizar(m);
 }
 
@@ -243,13 +244,18 @@ const escapar = (t) => String(t).replace(/[<>&"]/g,
    reintenta en cuanto la ventana tiene tamaño. */
 let encuadrePendiente = true;
 
+const alturaMenu = () => $('#menu').getBoundingClientRect().height;
+
 function encuadrar() {
   const m = 0.05;
-  const ancho = innerWidth, alto = innerHeight;
-  if (ancho < 1 || alto < 1) { encuadrePendiente = true; return; }
-  vista.z = Math.min(ancho / (ANCHO * (1 + m)), alto / (ALTO * (1 + m)));
+  const ancho = innerWidth;
+  /* El menú superior se queda con su franja: el plano se encuadra en lo
+     que sobra, no en la ventana entera. */
+  const libre = innerHeight - alturaMenu();
+  if (ancho < 1 || libre < 1) { encuadrePendiente = true; return; }
+  vista.z = Math.min(ancho / (ANCHO * (1 + m)), libre / (ALTO * (1 + m)));
   vista.x = (ancho - ANCHO * vista.z) / 2;
-  vista.y = (alto  - ALTO  * vista.z) / 2;
+  vista.y = alturaMenu() + (libre - ALTO * vista.z) / 2;
   encuadrePendiente = false;
   pintar();
 }
@@ -580,6 +586,9 @@ function abrirPanel() {
   const m = marcas.find(x => x.id === seleccion);
   if (!m) return cerrarPanel();
 
+  /* Los dos ocupan la misma esquina: quien abre el panel deja de mirar
+     la galería. Es la simétrica de abrir la galería, que cierra el panel. */
+  alternarGaleria(false);
   $('#panel').classList.remove('oculto');
   $('#panel-titulo').textContent = m.tipo === 'foto' ? 'Fotografía' : 'Nota';
   $('#f-titulo').value = m.titulo || '';
@@ -634,7 +643,7 @@ $('#borrar-marca').addEventListener('click', () => {
   if (!m) return;
   marcas = marcas.filter(x => x.id !== m.id);
   olvidarPreview(m.id);
-  guardarLocal(); borrarEnNube(m.id); cerrarPanel();
+  guardarLocal(); borrarEnNube(m.id); cerrarPanel(); refrescarInventario();
 });
 
 /* --- visor -------------------------------------------------------- */
@@ -659,6 +668,119 @@ function cardinal(g) {
   return ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(g / 45) % 8];
 }
 
+/* --- galería -------------------------------------------------------
+   Todas las fotografías del plano juntas, para repasarlas sin ir marca
+   por marca. La ficha abre la imagen; «situar» lleva el plano hasta el
+   punto desde donde se tomó.
+   ------------------------------------------------------------------ */
+const galeriaAbierta = () => !$('#galeria').classList.contains('oculta');
+
+function alternarGaleria(abrir) {
+  const mostrar = abrir === undefined ? !galeriaAbierta() : abrir;
+  $('#galeria').classList.toggle('oculta', !mostrar);
+  $('#abrir-galeria').classList.toggle('activo', mostrar);
+  /* La galería ocupa todo el ancho y taparía el panel de la marca. */
+  if (mostrar) { cerrarPanel(); pintarGaleria(); }
+}
+
+const sinImagen = (texto) => Object.assign(document.createElement('span'),
+  { className: 'sin', textContent: texto });
+
+function ficha(m) {
+  const art = document.createElement('article');
+  art.className = 'ficha' + (seleccion === m.id ? ' activa' : '');
+
+  const marco = document.createElement('span');
+  marco.className = 'ficha-imagen';
+  const ruta = rutaFoto(m);
+  if (ruta) {
+    const img = document.createElement('img');
+    img.src = ruta;
+    img.alt = m.titulo || '';
+    img.loading = 'lazy';
+    img.addEventListener('error',
+      () => marco.replaceChildren(sinImagen('No se encuentra el archivo')));
+    marco.appendChild(img);
+  } else {
+    marco.appendChild(sinImagen('Sin fotografía'));
+  }
+
+  const titulo = document.createElement('span');
+  titulo.className = 'ficha-titulo';
+  titulo.textContent = m.titulo || 'Sin título';
+
+  const ver = document.createElement('button');
+  ver.className = 'ficha-ver';
+  ver.title = 'Ver la fotografía';
+  ver.append(marco, titulo);
+  ver.addEventListener('click', () => { seleccion = m.id; abrirVisor(m); });
+
+  const rumbo = document.createElement('span');
+  rumbo.className = 'ficha-rumbo';
+  rumbo.textContent = Math.round(m.rumbo || 0) + '° ' + cardinal(m.rumbo || 0);
+
+  const ir = document.createElement('button');
+  ir.className = 'situar';
+  ir.textContent = 'Situar';
+  ir.title = 'Llevar el plano hasta este punto';
+  ir.addEventListener('click', () => situar(m));
+
+  const datos = document.createElement('div');
+  datos.className = 'ficha-datos';
+  datos.append(rumbo, ir);
+
+  art.append(ver, datos);
+  return art;
+}
+
+function pintarGaleria() {
+  const rejilla = $('#galeria-rejilla');
+  rejilla.textContent = '';
+  const fotos = marcas.filter(m => m.tipo === 'foto');
+
+  if (!fotos.length) {
+    const vacia = document.createElement('p');
+    vacia.className = 'galeria-vacia';
+    vacia.textContent = 'Todavía no hay fotografías. '
+      + 'Pulsa Foto y marca desde dónde se tomó cada imagen.';
+    rejilla.appendChild(vacia);
+    return;
+  }
+  fotos.forEach(m => rejilla.appendChild(ficha(m)));
+}
+
+/* Centra el plano en una marca, en el hueco que queda bajo el menú, y
+   la deja abierta en el panel. */
+function situar(m) {
+  const sup = alturaMenu();
+  const z = Math.max(vista.z, 1);
+  vista.x = innerWidth / 2 - m.x * z;
+  vista.y = sup + (innerHeight - sup) / 2 - m.y * z;
+  vista.z = z;
+  seleccion = m.id;
+  alternarGaleria(false);
+  pintar();
+  abrirPanel();
+}
+
+/* Cuántas marcas hay, para el menú. */
+function indicarCuenta() {
+  const fotos = marcas.filter(m => m.tipo === 'foto').length;
+  const notas = marcas.length - fotos;
+  const partes = [fotos === 1 ? '1 fotografía' : fotos + ' fotografías'];
+  if (notas) partes.push(notas === 1 ? '1 nota' : notas + ' notas');
+  $('#cuenta').textContent = partes.join(' · ');
+}
+
+/* Lo que hay que rehacer cuando cambia la colección de marcas. */
+function refrescarInventario() {
+  indicarCuenta();
+  if (galeriaAbierta()) pintarGaleria();
+}
+
+$('#abrir-galeria').addEventListener('click', () => alternarGaleria());
+$('#cerrar-galeria').addEventListener('click', () => alternarGaleria(false));
+
 /* --- exportar e importar ------------------------------------------ */
 $('#exportar').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(marcas, null, 2)], { type: 'application/json' });
@@ -682,7 +804,7 @@ $('#entrada-json').addEventListener('change', e => {
          apuntan a nada y hay que liberarlas. */
       olvidarTodasLasPreviews();
       marcas = datos.map(normalizar);
-      guardarLocal(); cerrarPanel(); pintarMarcas();
+      guardarLocal(); cerrarPanel(); pintarMarcas(); refrescarInventario();
       avisar(marcas.length + ' marcas importadas', 2600);
       subirTodas();
     } catch (err) {
@@ -703,10 +825,13 @@ $('#menos').addEventListener('click', () => zoom(1 / 1.4, innerWidth / 2, innerH
 addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
   const k = e.key.toLowerCase();
-  if (k === 'escape') { cerrarVisor(); cerrarPanel(); elegirHerramienta('mover'); }
+  if (k === 'escape') {
+    cerrarVisor(); cerrarPanel(); alternarGaleria(false); elegirHerramienta('mover');
+  }
   if (k === 'v') elegirHerramienta('mover');
   if (k === 'f') elegirHerramienta('foto');
   if (k === 'n') elegirHerramienta('nota');
+  if (k === 'g') alternarGaleria();
   if (k === 'e') encuadrar();
   if (k === 'h') $('#ayuda').classList.toggle('oculta');
   if ((k === 'delete' || k === 'backspace') && seleccion) $('#borrar-marca').click();
@@ -752,6 +877,7 @@ encuadrar();
   await detectarNube();
   if (nube.base) await cargarDeNube();
   indicarModo();
+  refrescarInventario();
   pintarMarcas();
   if (!marcas.length) avisar('Pulsa FOTO y marca desde dónde se tomó cada imagen', 5200);
 })();

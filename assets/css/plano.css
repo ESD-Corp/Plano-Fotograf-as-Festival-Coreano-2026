@@ -76,6 +76,107 @@ html,body{
 }
 .giro:active{ cursor:grabbing; }
 
+/* --- menú superior y galería ---------------------------------------
+   Los dos van apilados dentro de un mismo contenedor fijo, así la
+   galería cae justo debajo del menú sin tener que medir su alto.
+   ------------------------------------------------------------------ */
+.superior{ position:fixed; left:0; right:0; top:0; z-index:22; }
+
+.menu{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:9px 18px; background:var(--panel);
+  border-bottom:1px solid var(--linea); backdrop-filter:blur(14px);
+}
+.menu-marca{ display:flex; align-items:baseline; gap:11px; min-width:0; }
+.menu-marca b{
+  font-size:11px; font-weight:400; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--texto); white-space:nowrap;
+}
+.menu-marca span{
+  font-size:9px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--texto-3); white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis;
+}
+.menu-acciones{ display:flex; align-items:center; gap:12px; flex:none; }
+.cuenta{
+  font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--texto-3); white-space:nowrap;
+}
+
+.galeria{
+  background:var(--panel); border-bottom:1px solid var(--linea);
+  backdrop-filter:blur(14px);
+  max-height:min(62vh,560px); overflow-y:auto; overscroll-behavior:contain;
+}
+.galeria.oculta{ display:none; }
+.galeria::-webkit-scrollbar{ width:6px; }
+.galeria::-webkit-scrollbar-thumb{ background:var(--linea-2); border-radius:3px; }
+.galeria-cab{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:13px 18px 0;
+}
+.galeria-cab h2{
+  margin:0; font-size:9.5px; font-weight:400; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--texto-2);
+}
+.galeria-rejilla{
+  display:grid; gap:11px; padding:12px 18px 18px;
+  grid-template-columns:repeat(auto-fill,minmax(152px,1fr));
+}
+
+/* Una ficha por fotografía: la imagen abre el visor y «situar» lleva
+   el plano hasta el punto desde donde se tomó. */
+.ficha{
+  display:flex; flex-direction:column;
+  border:1px solid var(--linea); border-radius:3px; overflow:hidden;
+  background:#0b0b0d; transition:border-color .12s;
+}
+.ficha:hover{ border-color:var(--linea-2); }
+.ficha.activa{ border-color:var(--foto); }
+.ficha-ver{
+  display:block; width:100%; padding:0; background:none; border:none;
+  color:inherit; font:inherit; text-align:left; cursor:pointer;
+}
+/* La imagen va absoluta dentro del recuadro: si se deja en el flujo, su
+   alto propio manda sobre `aspect-ratio` y las fotos verticales estiran
+   la ficha hasta descuadrar la rejilla. */
+.ficha-imagen{
+  position:relative; aspect-ratio:4/3; background:#0f0f11;
+  border-bottom:1px solid var(--linea); display:block; overflow:hidden;
+}
+.ficha-imagen img{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; display:block;
+}
+.ficha-imagen .sin{
+  position:absolute; inset:0; display:grid; place-items:center;
+  font-size:8.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--texto-3); text-align:center; padding:10px; line-height:1.8;
+}
+.ficha-titulo{
+  display:block; padding:8px 9px 0; font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--texto);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.ficha-ver:hover .ficha-titulo{ color:#fff; }
+.ficha-datos{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:6px 9px 9px;
+}
+.ficha-rumbo{ font-size:9px; letter-spacing:.14em; color:var(--texto-3); }
+.situar{
+  background:none; border:1px solid var(--linea); color:var(--texto-3);
+  border-radius:2px; padding:4px 8px; cursor:pointer;
+  font:9px/1 var(--plano); letter-spacing:.14em; text-transform:uppercase;
+  transition:all .12s; flex:none;
+}
+.situar:hover{ border-color:var(--foto); color:var(--texto); }
+.galeria-vacia{
+  grid-column:1/-1; margin:0; padding:26px 4px 30px; text-align:center;
+  font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--texto-3); line-height:2;
+}
+
 /* --- barra de herramientas ---------------------------------------- */
 .barra{
   position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
@@ -115,12 +216,12 @@ html,body{
    herramientas, y el cuerpo desplaza: con una foto vertical el panel
    crecía por debajo de la pantalla y dejaba Ver foto y Borrar fuera. */
 .panel{
-  position:fixed; top:22px; right:22px; width:286px; z-index:25;
+  position:fixed; top:58px; right:22px; width:286px; z-index:25;
   background:var(--panel); border:1px solid var(--linea); border-radius:3px;
   backdrop-filter:blur(14px); overflow:hidden;
   display:flex; flex-direction:column;
-  max-height:calc(100vh - 96px);
-  max-height:calc(100dvh - 96px);
+  max-height:calc(100vh - 132px);
+  max-height:calc(100dvh - 132px);
 }
 .panel.oculto{ display:none; }
 .panel-cab{
@@ -207,7 +308,7 @@ html,body{
 
 /* --- aviso -------------------------------------------------------- */
 .aviso{
-  position:fixed; left:50%; top:22px; transform:translateX(-50%);
+  position:fixed; left:50%; top:58px; transform:translateX(-50%);
   background:var(--panel); border:1px solid var(--foto); border-radius:2px;
   padding:9px 15px; font-size:10px; letter-spacing:.14em; z-index:30;
   text-transform:uppercase; color:#fff;
@@ -215,7 +316,14 @@ html,body{
 .aviso.oculto{ display:none; }
 
 @media (max-width:820px){
-  .panel{ top:auto; bottom:80px; right:12px; left:12px; width:auto; }
+  .menu{ padding:8px 12px; }
+  .menu-marca span{ display:none; }
+  .cuenta{ display:none; }
+  .galeria-rejilla{ grid-template-columns:repeat(auto-fill,minmax(122px,1fr));
+                    gap:8px; padding:10px 12px 14px; }
+  .galeria-cab{ padding:11px 12px 0; }
+  .panel{ top:auto; bottom:80px; right:12px; left:12px; width:auto;
+          max-height:52vh; max-height:52dvh; }
   .barra{ bottom:12px; gap:6px; padding:6px 7px; flex-wrap:wrap;
           justify-content:center; max-width:96vw; }
   .btn{ padding:6px 9px; }

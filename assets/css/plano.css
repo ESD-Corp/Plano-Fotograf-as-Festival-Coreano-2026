@@ -43,22 +43,29 @@ html,body{
 .marca .cono{ position:absolute; left:50%; top:50%; width:0; height:0; }
 .marca .cono svg{ position:absolute; left:-62px; top:-62px;
                   transform-origin:62px 62px; }
+/* La marca de fotografía va a la mitad de su tamaño anterior para que el
+   dibujo se lea por debajo. Lo que se encoge es el punto, no la zona
+   sensible: el toque sigue teniendo 44 px (ver el bloque de puntero
+   grueso al final). */
 .marca .punto{
-  position:relative; width:19px; height:19px; border-radius:50%;
-  background:var(--foto); border:1.5px solid #fff;
+  position:relative; width:10px; height:10px; border-radius:50%;
+  background:var(--foto); border:1px solid #fff;
   display:grid; place-items:center;
-  box-shadow:0 0 0 3px rgba(228,50,43,.22), 0 2px 8px rgba(0,0,0,.7);
+  box-shadow:0 0 0 1.5px rgba(228,50,43,.22), 0 1px 5px rgba(0,0,0,.7);
   transition:transform .13s;
 }
 .marca:hover .punto{ transform:scale(1.18); }
 .marca.activa .punto{ transform:scale(1.3);
-  box-shadow:0 0 0 5px rgba(228,50,43,.3), 0 2px 12px rgba(0,0,0,.8); }
-.marca .punto svg{ width:10px; height:10px; fill:#fff; }
+  box-shadow:0 0 0 2.5px rgba(228,50,43,.3), 0 1px 7px rgba(0,0,0,.8); }
+.marca .punto svg{ width:5px; height:5px; fill:#fff; }
+
+/* Las notas conservan su tamaño: solo se pidió encoger las de cámara. */
 .marca.es-nota .punto{
   background:var(--nota); box-shadow:0 0 0 3px rgba(217,184,92,.2),
-  0 2px 8px rgba(0,0,0,.7); border-radius:2px; width:17px; height:17px;
+  0 2px 8px rgba(0,0,0,.7); border-radius:2px; border-width:1.5px;
+  width:17px; height:17px;
 }
-.marca.es-nota .punto svg{ fill:#241d07; }
+.marca.es-nota .punto svg{ width:10px; height:10px; fill:#241d07; }
 
 /* Foto añadida desde la galería, aún sin situar: borde discontinuo para
    que se vea de un vistazo que ese punto no es el de la toma. */
@@ -71,7 +78,7 @@ html,body{
   box-shadow:0 0 0 5px rgba(217,184,92,.32), 0 2px 12px rgba(0,0,0,.8);
 }
 .marca .rotulo{
-  position:absolute; left:26px; top:50%; transform:translateY(-50%);
+  position:absolute; left:15px; top:50%; transform:translateY(-50%);
   white-space:nowrap; font-size:10px; letter-spacing:.14em;
   text-transform:uppercase; color:var(--texto-2);
   background:rgba(0,0,0,.78); padding:4px 7px; border:1px solid var(--linea);
@@ -148,6 +155,91 @@ html,body{
 .galeria-rejilla{
   display:grid; gap:11px; padding:12px 18px 18px;
   grid-template-columns:repeat(auto-fill,minmax(152px,1fr));
+}
+
+/* --- capas del plano ----------------------------------------------
+   El plano base es un SVG con una ruta por clase de superficie. Aquí se
+   encienden y se apagan, y se baja su opacidad para que las marcas y lo
+   que se dibuje encima destaquen sobre el fondo.
+   ------------------------------------------------------------------ */
+.capas{
+  background:var(--panel); border-bottom:1px solid var(--linea);
+  backdrop-filter:blur(14px);
+  max-height:min(70vh,620px); overflow-y:auto; overscroll-behavior:contain;
+}
+.capas.oculta{ display:none; }
+.capas::-webkit-scrollbar{ width:6px; }
+.capas::-webkit-scrollbar-thumb{ background:var(--linea-2); border-radius:3px; }
+
+.opacidad{
+  display:flex; align-items:center; justify-content:space-between; gap:18px;
+  padding:14px 18px 12px; margin:12px 18px 0;
+  border:1px solid var(--linea); border-radius:3px;
+}
+.opacidad > span:first-child{
+  font-size:9.5px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--texto-2); white-space:nowrap;
+}
+.opacidad-mando{ display:flex; align-items:center; gap:12px; flex:1;
+                 justify-content:flex-end; max-width:360px; }
+.opacidad output{
+  font-size:11px; letter-spacing:.14em; color:var(--texto);
+  min-width:46px; text-align:right; font-variant-numeric:tabular-nums;
+}
+input[type=range]{
+  -webkit-appearance:none; appearance:none; flex:1; min-width:120px;
+  height:22px; background:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:2px; background:var(--linea-2); border-radius:2px;
+}
+input[type=range]::-moz-range-track{
+  height:2px; background:var(--linea-2); border-radius:2px;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:16px; height:16px;
+  margin-top:-7px; border-radius:50%; background:#fff;
+  border:2px solid var(--foto);
+}
+input[type=range]::-moz-range-thumb{
+  width:16px; height:16px; border-radius:50%; background:#fff;
+  border:2px solid var(--foto);
+}
+input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4px; }
+
+.capas-lista{ display:flex; flex-direction:column; padding:12px 18px 18px; }
+.capa{ display:flex; align-items:center; gap:8px; }
+.capa-ver{
+  flex:1; display:flex; align-items:center; gap:11px; min-width:0;
+  background:none; border:none; color:inherit; font:inherit; cursor:pointer;
+  padding:9px 2px; text-align:left;
+}
+.capa-muestra{
+  width:15px; height:15px; border-radius:2px; flex:none;
+  border:1px solid var(--linea-2);
+}
+.capa-nombre{
+  font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--texto); white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis;
+}
+/* Apagada: se ve que sigue ahí, pero apartada. */
+.capa.apagada .capa-nombre{ color:var(--texto-3); text-decoration:line-through; }
+.capa.apagada .capa-muestra{ opacity:.3; }
+.capa-ver:hover .capa-nombre{ color:#fff; }
+.capa-solo{
+  flex:none; background:none; border:1px solid var(--linea);
+  color:var(--texto-3); border-radius:2px; padding:5px 9px; cursor:pointer;
+  font:9px/1 var(--plano); letter-spacing:.14em; text-transform:uppercase;
+  transition:all .12s;
+}
+.capa-solo:hover{ border-color:var(--linea-2); color:var(--texto); }
+.capa.aislada .capa-solo{
+  border-color:var(--foto); color:#fff; background:var(--foto-tenue);
+}
+.capas-aviso{
+  margin:0; padding:20px 18px 24px; font-size:10px; line-height:2;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--texto-3);
 }
 
 /* Una ficha por fotografía: la imagen abre el visor y «situar» lleva
@@ -375,6 +467,23 @@ html,body{
                     gap:10px; padding:10px 12px 16px; }
   .galeria-cab{ padding:11px 12px 0; }
   .galeria{ max-height:72vh; max-height:72dvh; }
+  .capas{ max-height:72vh; max-height:72dvh; }
+
+  /* En una columna el rótulo, el deslizador y el valor no caben en fila:
+     el porcentaje se salía de la pantalla. */
+  .opacidad{
+    flex-direction:column; align-items:stretch; gap:8px;
+    margin:12px 12px 0; padding:12px 14px;
+  }
+  .opacidad > span:first-child{ white-space:normal; }
+  .opacidad-mando{ max-width:none; }
+  input[type=range]{ height:36px; }
+  input[type=range]::-webkit-slider-thumb{ width:22px; height:22px; margin-top:-10px; }
+  input[type=range]::-moz-range-thumb{ width:22px; height:22px; }
+
+  .capas-lista{ padding:12px 12px 18px; }
+  .capa-ver{ padding:12px 2px; }
+  .capa-solo{ min-height:40px; padding:0 12px; }
   .situar{ min-height:44px; padding:0 14px; font-size:10px; }
   .ficha-datos{ padding:8px 9px 10px; }
   #anadir-fotos{ min-height:44px; min-width:44px; justify-content:center; }

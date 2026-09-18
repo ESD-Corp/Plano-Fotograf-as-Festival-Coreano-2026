@@ -135,6 +135,37 @@ trabajando solo en local, con un aviso que lo explica.
 
 Sin `PLANO_CLAVE` definida nada cambia: las rutas quedan abiertas como hasta ahora.
 
+## Las capas del plano
+
+El botón **Capas** de la barra superior (atajo **C**) abre el despiece del dibujo. El plano no
+es una imagen plana: se vectorizó clasificando cada píxel, así que cada clase de superficie es
+una capa con nombre propio.
+
+| Capa | Qué es |
+|---|---|
+| Áreas verdes | el césped, con su trama de grama |
+| Arbolado | la masa de las copas |
+| Explanada | la superficie del recinto |
+| Pavimento | las aceras y calzadas |
+| Mar Caribe | el agua |
+| Otras superficies | los dos tonos intermedios que no entran en la leyenda |
+| Trazado | todo el dibujo de línea blanca: contornos, edificación y rótulos |
+| Leyenda · Rótulo | la muestra de colores y el título, por si estorban al montar encima |
+
+Pulsar el nombre la apaga y la vuelve a encender. **Aislar** deja esa sola a plena vista y
+atenúa el resto, para comprobar una superficie sin perder de vista dónde cae.
+
+El **deslizador de opacidad** baja el plano entero sin tocar las marcas, que es lo que hace
+falta cuando se dibuja el montaje encima y el fondo compite con él.
+
+Lo que apagues y la opacidad se recuerdan en el navegador. El aislamiento no: al volver, un
+plano casi entero atenuado se lee como una avería y no como un modo.
+
+Una salvedad: separar las capas exige leer el archivo del dibujo, y el navegador no lo permite
+si abres el `index.html` directamente desde el disco. Así el plano se sigue viendo entero y la
+opacidad funciona, pero el panel de capas lo dice en vez de fingir que puede. Con servidor
+detrás, o publicado, funciona todo.
+
 ## En el móvil
 
 La barra de herramientas se ancla abajo, donde cae el pulgar, con cuatro destinos del tamaño
@@ -154,6 +185,7 @@ mayor, así que no hace falta afinar con la yema. El panel de una marca deja **V
 | **F** | insertar fotografía |
 | **N** | dejar una nota |
 | **G** | abrir y cerrar la galería |
+| **C** | abrir y cerrar las capas |
 | **E** | encuadrar el plano |
 | **H** | ocultar la ayuda |
 | **Supr** | borrar la marca seleccionada |

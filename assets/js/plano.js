@@ -13,7 +13,7 @@ const CLAVE = 'plano-fray-anton-marcas';
 
 const $ = (s) => document.querySelector(s);
 const lienzo  = $('#lienzo');
-const mapa    = $('#mapa');
+let   mapa    = $('#mapa');
 const capa    = $('#marcas');
 
 /* --- estado ------------------------------------------------------- */
@@ -613,6 +613,7 @@ function abrirPanel() {
      la galería. Es la simétrica de abrir la galería, que cierra el panel. */
   alternarGaleria(false);
   alternarHoja(false);
+  alternarCapas(false);
   $('#panel').classList.remove('oculto');
   $('#panel-titulo').textContent = m.tipo === 'foto' ? 'Fotografía' : 'Nota';
   $('#f-titulo').value = m.titulo || '';
@@ -704,7 +705,7 @@ function alternarGaleria(abrir) {
   $('#galeria').classList.toggle('oculta', !mostrar);
   $('#abrir-galeria').classList.toggle('activo', mostrar);
   /* La galería ocupa todo el ancho y taparía el panel de la marca. */
-  if (mostrar) { cerrarPanel(); alternarHoja(false); pintarGaleria(); }
+  if (mostrar) { cerrarPanel(); alternarHoja(false); alternarCapas(false); pintarGaleria(); }
 }
 
 const sinImagen = (texto) => Object.assign(document.createElement('span'),
@@ -892,6 +893,177 @@ $('#entrada-json').addEventListener('change', e => {
   lector.readAsText(f);
 });
 
+/* --- capas del plano ------------------------------------------------
+   El plano base es un SVG con una ruta por clase de superficie, así que
+   las capas ya existen dentro del dibujo: aquí solo se encienden, se
+   apagan y se atenúan. También se le baja la opacidad al conjunto, para
+   que las marcas destaquen sobre el fondo.
+   ------------------------------------------------------------------ */
+const CLAVE_CAPAS = 'plano-fray-anton-capas';
+
+/* Los identificadores son los que escribe el vectorizador; los nombres,
+   los de la leyenda del propio plano. */
+const CAPAS = [
+  { clave: 'verde',     nombre: 'Áreas verdes',      muestra: '#12251a', ids: ['verde'] },
+  { clave: 'arbolado',  nombre: 'Arbolado',          muestra: '#0c0c0d', ids: ['oscuro'] },
+  { clave: 'explanada', nombre: 'Explanada',         muestra: '#16161a', ids: ['medio'] },
+  { clave: 'pavimento', nombre: 'Pavimento',         muestra: '#24252a', ids: ['claro2'] },
+  { clave: 'mar',       nombre: 'Mar Caribe',        muestra: '#0a1622', ids: ['mar'] },
+  { clave: 'otras',     nombre: 'Otras superficies', muestra: '#1c1d21', ids: ['oscuro2', 'claro1'] },
+  { clave: 'trazado',   nombre: 'Trazado',           muestra: '#ffffff', ids: ['blanco'] },
+  { clave: 'leyenda',   nombre: 'Leyenda',           muestra: '#8d8d90', ids: ['leyenda'] },
+  { clave: 'rotulo',    nombre: 'Rótulo',            muestra: '#8d8d90', ids: ['rotulo'] },
+];
+
+let svgPlano = null;                 // el plano en línea, si se consigue
+const capas = { ocultas: [], aislada: null, opacidad: 100 };
+
+function cargarCapas() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CLAVE_CAPAS) || '{}');
+    if (Array.isArray(d.ocultas)) capas.ocultas = d.ocultas.filter(
+      c => CAPAS.some(x => x.clave === c));
+    if (Number.isFinite(d.opacidad)) capas.opacidad = Math.min(100, Math.max(10, d.opacidad));
+  } catch (e) {
+    /* Sin preferencias guardadas: todo visible al 100 %. */
+  }
+  /* El aislamiento no se guarda: al volver, un plano casi entero
+     atenuado se lee como una avería, no como un modo. */
+}
+
+function guardarCapas() {
+  try {
+    localStorage.setItem(CLAVE_CAPAS, JSON.stringify(
+      { ocultas: capas.ocultas, opacidad: capas.opacidad }));
+  } catch (e) { /* almacenamiento bloqueado */ }
+}
+
+/* El plano se sirve en un <img>, que no deja tocar su interior. Se
+   intenta traer el mismo archivo en línea para poder separar las capas.
+   Abierto desde el disco sin servidor, el navegador no deja leerlo: en
+   ese caso se queda la imagen, el plano se ve igual y el panel lo dice. */
+async function ponerPlanoEnLinea() {
+  const img = $('#mapa');
+  if (!img || img.tagName !== 'IMG') return;
+  try {
+    const r = await fetch(img.getAttribute('src'), { cache: 'force-cache' });
+    if (!r.ok) throw new Error('error ' + r.status);
+    const doc = new DOMParser().parseFromString(await r.text(), 'image/svg+xml');
+    const svg = doc.documentElement;
+    if (svg.nodeName !== 'svg' || doc.querySelector('parsererror')) {
+      throw new Error('el archivo no es un SVG legible');
+    }
+    svg.id = 'mapa';
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', img.alt || 'Plano');
+    img.replaceWith(svg);
+    mapa = svg;
+    svgPlano = svg;
+    pintar();                        // el nodo es otro: hay que repintar
+  } catch (e) {
+    /* Se queda el <img>. */
+  }
+}
+
+function aplicarCapas() {
+  if (!svgPlano) return;
+  CAPAS.forEach(capa => {
+    const oculta = capas.ocultas.includes(capa.clave);
+    const atenuada = capas.aislada && capas.aislada !== capa.clave;
+    capa.ids.forEach(id => {
+      const nodo = svgPlano.querySelector('#' + id);
+      if (!nodo) return;
+      nodo.style.display = oculta ? 'none' : '';
+      nodo.style.opacity = atenuada ? '.1' : '';
+    });
+  });
+}
+
+function aplicarOpacidad() {
+  if (mapa) mapa.style.opacity = capas.opacidad / 100;
+  $('#opacidad').value = capas.opacidad;
+  $('#opacidad-valor').textContent = capas.opacidad + '%';
+}
+
+function filaCapa(capa) {
+  const oculta = capas.ocultas.includes(capa.clave);
+  const aislada = capas.aislada === capa.clave;
+
+  const fila = document.createElement('div');
+  fila.className = 'capa' + (oculta ? ' apagada' : '') + (aislada ? ' aislada' : '');
+
+  const muestra = document.createElement('span');
+  muestra.className = 'capa-muestra';
+  muestra.style.background = capa.muestra;
+
+  const nombre = document.createElement('span');
+  nombre.className = 'capa-nombre';
+  nombre.textContent = capa.nombre;
+
+  const ver = document.createElement('button');
+  ver.className = 'capa-ver';
+  ver.setAttribute('aria-pressed', String(!oculta));
+  ver.title = oculta ? 'Mostrar esta capa' : 'Ocultar esta capa';
+  ver.append(muestra, nombre);
+  ver.addEventListener('click', () => alternarCapa(capa.clave));
+
+  const solo = document.createElement('button');
+  solo.className = 'capa-solo';
+  solo.textContent = aislada ? 'Ver todo' : 'Aislar';
+  solo.title = aislada ? 'Volver a mostrar el resto' : 'Ver solo esta capa';
+  solo.addEventListener('click', () => aislarCapa(capa.clave));
+
+  fila.append(ver, solo);
+  return fila;
+}
+
+function pintarCapas() {
+  const lista = $('#capas-lista');
+  lista.textContent = '';
+
+  if (!svgPlano) {
+    const aviso = document.createElement('p');
+    aviso.className = 'capas-aviso';
+    aviso.textContent = 'Las capas necesitan que el plano se abra desde un servidor. '
+      + 'Abierto directamente desde el disco, el navegador no deja leer el archivo del '
+      + 'dibujo y solo puede mostrarlo entero. La opacidad sí funciona.';
+    lista.appendChild(aviso);
+    return;
+  }
+  CAPAS.forEach(capa => lista.appendChild(filaCapa(capa)));
+}
+
+function alternarCapa(clave) {
+  const i = capas.ocultas.indexOf(clave);
+  if (i === -1) capas.ocultas.push(clave); else capas.ocultas.splice(i, 1);
+  capas.aislada = null;              // encender algo sale del aislamiento
+  guardarCapas(); aplicarCapas(); pintarCapas();
+}
+
+function aislarCapa(clave) {
+  capas.aislada = capas.aislada === clave ? null : clave;
+  aplicarCapas(); pintarCapas();
+}
+
+const capasAbiertas = () => !$('#capas').classList.contains('oculta');
+
+function alternarCapas(abrir) {
+  const mostrar = abrir === undefined ? !capasAbiertas() : abrir;
+  $('#capas').classList.toggle('oculta', !mostrar);
+  $('#abrir-capas').classList.toggle('activo', mostrar);
+  if (mostrar) {
+    cerrarPanel(); alternarGaleria(false); alternarHoja(false); pintarCapas();
+  }
+}
+
+$('#abrir-capas').addEventListener('click', () => alternarCapas());
+$('#cerrar-capas').addEventListener('click', () => alternarCapas(false));
+$('#opacidad').addEventListener('input', e => {
+  capas.opacidad = Number(e.target.value);
+  aplicarOpacidad();
+});
+$('#opacidad').addEventListener('change', guardarCapas);
+
 /* --- hoja inferior en táctil ---------------------------------------
    En el móvil no caben en la barra los controles secundarios sin
    partirla en filas de botones diminutos. En vez de duplicarlos, se
@@ -941,12 +1113,13 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (k === 'escape') {
     cerrarVisor(); cerrarPanel(); alternarGaleria(false); alternarHoja(false);
-    elegirHerramienta('mover');
+    alternarCapas(false); elegirHerramienta('mover');
   }
   if (k === 'v') elegirHerramienta('mover');
   if (k === 'f') elegirHerramienta('foto');
   if (k === 'n') elegirHerramienta('nota');
   if (k === 'g') alternarGaleria();
+  if (k === 'c') alternarCapas();
   if (k === 'e') encuadrar();
   if (k === 'h') $('#ayuda').classList.toggle('oculta');
   if ((k === 'delete' || k === 'backspace') && seleccion) $('#borrar-marca').click();
@@ -986,9 +1159,17 @@ function indicarModo() {
 }
 
 cargarLocal();
+cargarCapas();
 encuadrar();
+aplicarOpacidad();
 
 (async () => {
+  /* El plano ya se ve como imagen; esto solo lo sustituye por el SVG en
+     línea para poder separar las capas. */
+  await ponerPlanoEnLinea();
+  aplicarCapas();
+  aplicarOpacidad();
+
   await detectarNube();
   if (nube.base) await cargarDeNube();
   indicarModo();

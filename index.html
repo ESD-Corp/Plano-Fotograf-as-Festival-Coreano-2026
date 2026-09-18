@@ -15,10 +15,13 @@
       <b>Monumento a Fray Antón</b>
       <span>Santo Domingo · Festival Coreano</span>
     </div>
-    <!-- Grupo central: aquí van los botones del menú, de momento la galería -->
+    <!-- Grupo central: aquí van los botones del menú -->
     <nav class="menu-centro" id="menu-centro">
       <button class="btn" id="abrir-galeria" title="Galería de fotografías (G)">
         <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z"/></svg>Galería
+      </button>
+      <button class="btn" id="abrir-capas" title="Capas del plano (C)">
+        <svg viewBox="0 0 24 24"><path d="M12 2 2 7.5 12 13l10-5.5L12 2ZM4.6 11.2 2 12.6 12 18l10-5.4-2.6-1.4L12 15.1l-7.4-3.9Zm0 4.6L2 17.2 12 22.7l10-5.5-2.6-1.4L12 19.7l-7.4-3.9Z"/></svg>Capas
       </button>
     </nav>
 
@@ -38,6 +41,23 @@
       </div>
     </div>
     <div class="galeria-rejilla" id="galeria-rejilla"></div>
+  </section>
+
+  <section class="capas oculta" id="capas" aria-label="Capas del plano">
+    <div class="galeria-cab">
+      <h2>Capas del plano</h2>
+      <button class="cerrar" id="cerrar-capas" title="Cerrar (C)">×</button>
+    </div>
+
+    <label class="opacidad" for="opacidad">
+      <span>Opacidad del plano base</span>
+      <span class="opacidad-mando">
+        <input type="range" id="opacidad" min="10" max="100" step="5" value="100">
+        <output id="opacidad-valor">100%</output>
+      </span>
+    </label>
+
+    <div class="capas-lista" id="capas-lista"></div>
   </section>
 </div>
 
@@ -134,7 +154,7 @@
 
 <div class="ayuda" id="ayuda">
   <b>arrastrar</b> mover · <b>rueda</b> zoom · <b>doble clic</b> en una marca abre la foto<br>
-  <b>F</b> foto · <b>N</b> nota · <b>V</b> mover · <b>G</b> galería · <b>E</b> encuadrar · <b>H</b> ocultar
+  <b>F</b> foto · <b>N</b> nota · <b>V</b> mover · <b>G</b> galería · <b>C</b> capas · <b>E</b> encuadrar · <b>H</b> ocultar
 </div>
 
 <input type="file" id="entrada-archivo" accept="image/*" hidden>

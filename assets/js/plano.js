@@ -198,7 +198,7 @@ const ICONO_NOTA = '<svg viewBox="0 0 24 24"><path d="M4 3h16v13l-5 5H4V3Zm2 2v1
    encogen al alejar, cuarenta marcas se juntan en una mancha. Se atan al
    zoom, con suelo para que no desaparezcan y techo para que no tapen el
    dibujo por más que se amplíe. */
-const MARCA_MIN = 0.6, MARCA_MAX = 1.2;
+const MARCA_MIN = 0.34, MARCA_MAX = 1.2;
 const escalaMarca = () => Math.min(MARCA_MAX, Math.max(MARCA_MIN, vista.z));
 
 /* Rumbo de la cámara. La aguja se ve siempre: es una línea y no estorba

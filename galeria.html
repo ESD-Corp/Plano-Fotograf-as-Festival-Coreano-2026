@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fotografías · Plano Fray Antón</title>
+<link rel="stylesheet" href="assets/css/plano.css">
+</head>
+<body class="pagina">
+
+<div class="superior">
+  <header class="menu" id="menu">
+    <div class="menu-marca">
+      <b>Fotografías</b>
+      <span>Monumento a Fray Antón</span>
+    </div>
+    <nav class="menu-centro">
+      <a class="btn" href="index.html" id="volver-plano" title="Volver al plano">
+        <svg viewBox="0 0 24 24"><path d="M9 2.2 2.6 4.4A1 1 0 0 0 2 5.3v15.3a.7.7 0 0 0 .95.66L9 19.1l6 2.7 6.4-2.2a1 1 0 0 0 .6-.9V3.4a.7.7 0 0 0-.95-.66L15 4.9 9 2.2Zm0 2.3 5 2.25v12.75l-5-2.25V4.5Z"/></svg>Plano
+      </a>
+      <button class="btn" id="anadir-fotos" title="Añadir fotografías al plano">
+        <svg viewBox="0 0 24 24"><path d="M11 3h2v7h7v2h-7v7h-2v-7H4v-2h7V3Z"/></svg><span>Añadir fotografías</span>
+      </button>
+    </nav>
+    <div class="menu-acciones">
+      <span class="cuenta" id="cuenta"></span>
+    </div>
+  </header>
+</div>
+
+<main class="pagina-cuerpo">
+  <div class="galeria-rejilla" id="galeria-rejilla"></div>
+</main>
+
+<div class="aviso oculto" id="aviso"></div>
+
+<!-- VISOR ----------------------------------------------------------->
+<div class="visor oculto" id="visor">
+  <button class="visor-cerrar" id="visor-cerrar">×</button>
+  <button class="visor-bajar" id="visor-bajar" title="Descargar esta fotografía">
+    <svg viewBox="0 0 24 24"><path d="M11 3h2v9.6l3.3-3.3 1.4 1.4L12 16.4 6.3 10.7l1.4-1.4L11 12.6V3ZM5 19h14v2H5v-2Z"/></svg>
+  </button>
+  <div id="visor-cuerpo"></div>
+  <div class="visor-pie">
+    <h3 id="visor-titulo"></h3>
+    <p id="visor-nota"></p>
+    <div class="rumbo" id="visor-rumbo"></div>
+    <div class="visor-cuenta" id="visor-cuenta"></div>
+  </div>
+</div>
+
+<p class="credito">Creado por Matías Boncosky para Grupo ESD</p>
+
+<input type="file" id="entrada-fotos" accept="image/*" multiple hidden>
+
+<script src="assets/js/comun.js"></script>
+<script src="assets/js/galeria.js"></script>
+</body>
+</html>

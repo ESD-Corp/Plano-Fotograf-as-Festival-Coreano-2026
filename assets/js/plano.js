@@ -609,8 +609,7 @@ async function subir(archivo) {
 /* Asocia una imagen a una marca: se ve al instante, y si hay Blob
    conectado se sube y la marca pasa a apuntar a la URL definitiva. */
 async function adjuntar(m, f, opciones) {
-  /* En una tanda de la galería no se abre el panel de cada foto ni se
-     avisa una por una: lo hace `anadirFotos` al terminar. */
+  /* Modo callado: sin abrir el panel ni avisar por cada foto. */
   const callado = Boolean(opciones && opciones.callado);
 
   recordarPreview(m.id, f);
@@ -659,8 +658,7 @@ function abrirPanel() {
 
   /* Los dos ocupan la misma esquina: quien abre el panel deja de mirar
      la galería. Es la simétrica de abrir la galería, que cierra el panel. */
-  alternarGaleria(false);
-  alternarHoja(false);
+    alternarHoja(false);
   alternarCapas(false);
   alternarPlano(false);
   cerrarGlobo();
@@ -808,10 +806,23 @@ function abrirVisor(m, paso) {
   $('#visor-cuenta').textContent = (m.tipo === 'foto' && lista.length > 1)
     ? (i + 1) + ' / ' + lista.length : '';
 
+  $('#visor-bajar').disabled = !rutaFoto(m);
   $('#visor').classList.remove('oculto');
 }
 const cerrarVisor = () => $('#visor').classList.add('oculto');
 $('#visor-cerrar').addEventListener('click', cerrarVisor);
+
+$('#visor-bajar').addEventListener('click', async () => {
+  const m = marcas.find(x => x.id === visorActual);
+  if (!m) return;
+  const ruta = rutaFoto(m);
+  if (!ruta) return avisar('Esta marca todavía no tiene fotografía', 3000);
+  avisar('Descargando…');
+  const limpia = await PL.descargar(m, ruta);
+  avisar(limpia
+    ? 'Descargada como ' + PL.nombreDeDescarga(m)
+    : 'Se abrió en otra pestaña: guárdala desde ahí', 3600);
+});
 
 /* --- recorrer las fotografías desde el visor ------------------------
    Con una foto abierta a pantalla completa, lo natural es pasar a la
@@ -859,99 +870,14 @@ function cardinal(g) {
   return ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(g / 45) % 8];
 }
 
-/* --- galería -------------------------------------------------------
-   Todas las fotografías del plano juntas, para repasarlas sin ir marca
-   por marca. La ficha abre la imagen; «situar» lleva el plano hasta el
-   punto desde donde se tomó.
+/* --- lo que va a la galería -----------------------------------------
+   La galería vive en su propia página (galeria.html). Aquí solo queda
+   llevar el plano hasta una marca y mantener la cuenta del menú.
    ------------------------------------------------------------------ */
-const galeriaAbierta = () => !$('#galeria').classList.contains('oculta');
-
-function alternarGaleria(abrir) {
-  const mostrar = abrir === undefined ? !galeriaAbierta() : abrir;
-  $('#galeria').classList.toggle('oculta', !mostrar);
-  $('#abrir-galeria').classList.toggle('activo', mostrar);
-  /* La galería ocupa todo el ancho y taparía el panel de la marca. */
-  if (mostrar) {
-    cerrarPanel(); cerrarGlobo(); alternarHoja(false); alternarCapas(false);
-    alternarPlano(false); pintarGaleria();
-  }
-}
-
 const sinImagen = (texto) => Object.assign(document.createElement('span'),
   { className: 'sin', textContent: texto });
 
-function ficha(m) {
-  const art = document.createElement('article');
-  art.className = 'ficha' + (seleccion === m.id ? ' activa' : '');
-
-  const marco = document.createElement('span');
-  marco.className = 'ficha-imagen';
-  const ruta = rutaFoto(m);
-  if (ruta) {
-    const img = document.createElement('img');
-    img.src = ruta;
-    img.alt = m.titulo || '';
-    img.loading = 'lazy';
-    img.addEventListener('error',
-      () => marco.replaceChildren(sinImagen('No se encuentra el archivo')));
-    marco.appendChild(img);
-  } else {
-    marco.appendChild(sinImagen('Sin fotografía'));
-  }
-
-  const titulo = document.createElement('span');
-  titulo.className = 'ficha-titulo';
-  titulo.textContent = m.titulo || 'Sin título';
-
-  const ver = document.createElement('button');
-  ver.className = 'ficha-ver';
-  ver.title = 'Ver la fotografía';
-  ver.append(marco, titulo);
-  ver.addEventListener('click', () => { seleccion = m.id; abrirVisor(m); });
-
-  /* Sin situar, el rumbo no significa nada todavía: en su lugar se dice
-     lo que le falta a la marca. */
-  const rumbo = document.createElement('span');
-  rumbo.className = 'ficha-rumbo' + (m.situada ? '' : ' pendiente');
-  rumbo.textContent = m.situada
-    ? Math.round(m.rumbo || 0) + '° ' + cardinal(m.rumbo || 0)
-    : 'Sin situar';
-  if (!m.situada) art.classList.add('pendiente');
-
-  const ir = document.createElement('button');
-  ir.className = 'situar';
-  ir.textContent = 'Situar';
-  ir.title = 'Llevar el plano hasta este punto';
-  ir.addEventListener('click', () => situar(m));
-
-  const datos = document.createElement('div');
-  datos.className = 'ficha-datos';
-  datos.append(rumbo, ir);
-
-  art.append(ver, datos);
-  return art;
-}
-
-function pintarGaleria() {
-  const rejilla = $('#galeria-rejilla');
-  rejilla.textContent = '';
-  /* Las que faltan por situar van delante: son las que piden trabajo. */
-  const fotos = marcas.filter(m => m.tipo === 'foto')
-    .sort((a, b) => Number(a.situada) - Number(b.situada));
-
-  if (!fotos.length) {
-    const vacia = document.createElement('p');
-    vacia.className = 'galeria-vacia';
-    vacia.textContent = 'Todavía no hay fotografías. '
-      + 'Pulsa Foto y marca desde dónde se tomó cada imagen.';
-    rejilla.appendChild(vacia);
-    return;
-  }
-  fotos.forEach(m => rejilla.appendChild(ficha(m)));
-}
-
-/* Centra el plano en una marca, en el hueco que queda bajo el menú, y
-   la deja abierta en el panel. */
+/* Centra el plano en una marca y la deja abierta en el panel. */
 function situar(m) {
   const [cx, cy] = centroLibre();
   const z = Math.max(vista.z, 1);
@@ -959,7 +885,6 @@ function situar(m) {
   vista.y = cy - m.y * z;
   vista.z = z;
   seleccion = m.id;
-  alternarGaleria(false);
   pintar();
   abrirPanel();
 }
@@ -977,57 +902,21 @@ function indicarCuenta() {
   etiqueta.classList.toggle('pendiente', pendientes > 0);
 }
 
-/* --- añadir fotografías desde la galería ---------------------------
-   Sin pasar por el plano: entran como marcas sin situar, aparcadas en
-   el centro de lo que se está viendo, y se arrastran después hasta el
-   punto desde donde se tomaron.
-   ------------------------------------------------------------------ */
-function aparcar(indice) {
-  const [px, py] = centroLibre();
-  const [cx, cy] = aPlano(px, py);
-  const paso = 42, porFila = 5;
-  const x = cx + ((indice % porFila) - (porFila - 1) / 2) * paso;
-  const y = cy + (Math.floor(indice / porFila) - 1) * paso;
-  return [Math.min(ANCHO, Math.max(0, x)), Math.min(ALTO, Math.max(0, y))];
-}
-
-async function anadirFotos(archivos) {
-  const yaPendientes = marcas.filter(m => m.tipo === 'foto' && !m.situada).length;
-  let n = 0;
-
-  for (const f of archivos) {
-    const [x, y] = aparcar(yaPendientes + n);
-    const m = { id: nuevoId(), tipo: 'foto', x, y, rumbo: 0,
-                titulo: '', nota: '', archivo: '', situada: false };
-    marcas.push(m);
-    n++;
-    if (nube.blob) avisar(`Subiendo ${n} de ${archivos.length}…`);
-    await adjuntar(m, f, { callado: true });
-    pintarMarcas();
-  }
-
-  refrescarInventario();
-  avisar(n === 1
-    ? 'Una fotografía añadida. Arrástrala en el plano hasta el punto desde donde se tomó'
-    : `${n} fotografías añadidas. Arrástralas en el plano hasta el punto desde donde se tomaron`,
-    6500);
-}
-
-$('#anadir-fotos').addEventListener('click', () => $('#entrada-fotos').click());
-$('#entrada-fotos').addEventListener('change', e => {
-  const archivos = [...e.target.files].filter(f => f.type.startsWith('image/'));
-  e.target.value = '';                 // permite reelegir los mismos archivos
-  if (archivos.length) anadirFotos(archivos);
-});
-
-/* Lo que hay que rehacer cuando cambia la colección de marcas. */
 function refrescarInventario() {
   indicarCuenta();
-  if (galeriaAbierta()) pintarGaleria();
+  if (capasAbiertas()) pintarCapas();
 }
 
-$('#abrir-galeria').addEventListener('click', () => alternarGaleria());
-$('#cerrar-galeria').addEventListener('click', () => alternarGaleria(false));
+/* La galería enlaza aquí con #situar=<id> cuando pide ver una marca en
+   el plano. Se consume el fragmento para que recargar no vuelva a
+   saltar al mismo sitio. */
+function atenderEnlace() {
+  const m = /^#situar=(.+)$/.exec(location.hash);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  const marca = marcas.find(x => x.id === decodeURIComponent(m[1]));
+  if (marca) situar(marca);
+}
 
 /* --- exportar e importar ------------------------------------------ */
 $('#exportar').addEventListener('click', () => {
@@ -1295,7 +1184,7 @@ function alternarPlano(abrir) {
   $('#panel-plano').classList.toggle('oculta', !mostrar);
   $('#abrir-plano').classList.toggle('activo', mostrar);
   if (mostrar) {
-    cerrarPanel(); cerrarGlobo(); alternarGaleria(false); alternarCapas(false);
+    cerrarPanel(); cerrarGlobo(); alternarCapas(false);
     alternarHoja(false);
   }
 }
@@ -1311,7 +1200,7 @@ function alternarCapas(abrir) {
   $('#capas').classList.toggle('oculta', !mostrar);
   $('#abrir-capas').classList.toggle('activo', mostrar);
   if (mostrar) {
-    cerrarPanel(); cerrarGlobo(); alternarGaleria(false); alternarHoja(false);
+    cerrarPanel(); cerrarGlobo(); alternarHoja(false);
     alternarPlano(false); pintarCapas();
   }
 }
@@ -1379,14 +1268,13 @@ addEventListener('keydown', e => {
 
   const k = e.key.toLowerCase();
   if (k === 'escape') {
-    cerrarVisor(); cerrarGlobo(); cerrarPanel(); alternarGaleria(false);
-    alternarHoja(false); alternarCapas(false); alternarPlano(false);
+    cerrarVisor(); cerrarGlobo(); cerrarPanel();     alternarHoja(false); alternarCapas(false); alternarPlano(false);
     elegirHerramienta('mover');
   }
   if (k === 'v') elegirHerramienta('mover');
   if (k === 'f') elegirHerramienta('foto');
   if (k === 'n') elegirHerramienta('nota');
-  if (k === 'g') alternarGaleria();
+  if (k === 'g') location.href = 'galeria.html';
   if (k === 'c') alternarCapas();
   if (k === 'p') alternarPlano();
   if (k === 'e') encuadrar();
@@ -1444,6 +1332,7 @@ aplicarOpacidad();
   indicarModo();
   refrescarInventario();
   pintarMarcas();
+  atenderEnlace();
   if (!marcas.length) avisar('Pulsa FOTO y marca desde dónde se tomó cada imagen', 5200);
 })();
 

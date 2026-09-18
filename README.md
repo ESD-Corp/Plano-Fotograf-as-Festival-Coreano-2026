@@ -24,7 +24,9 @@ fotografía: ni título, ni rumbo, ni botones. Es una ojeada, y el dato ya está
 la galería. El globo crece desde el punto que has tocado y se voltea solo si no cabe arriba.
 
 Pulsando la imagen, o con **doble clic** en la marca, se abre a pantalla completa con su
-título, su nota y el rumbo.
+título, su nota y el rumbo. Ahí, **deslizar de lado** pasa a la siguiente fotografía —las
+flechas del teclado hacen lo mismo—, un contador dice en cuál vas, y el botón de la esquina
+la **descarga** con el título por nombre.
 
 ## Cómo se leen las marcas
 
@@ -42,14 +44,14 @@ del dedo no: sigue siendo de 44 px.
 
 ## La galería
 
-El botón **Galería** de la barra superior (atajo **G**) despliega todas las fotografías juntas,
-para repasar lo que hay sin ir marca por marca. Cada ficha lleva el título y el rumbo, y las que
-todavía no tienen imagen —o apuntan a un archivo que falta— lo dicen en su recuadro.
+Vive en su propia página, `galeria.html`, a la que lleva el botón **Galería** del menú (atajo
+**G**). Son las mismas marcas vistas del otro lado: el plano sirve para situar, y la galería
+para repasar lo que hay.
 
-Pulsar la miniatura abre la fotografía a pantalla completa. **Situar** hace lo contrario: cierra
-la galería y lleva el plano hasta el punto desde donde se tomó, con la marca ya seleccionada.
-
-A la derecha de la barra superior está siempre la cuenta de lo que hay marcado.
+Cada ficha lleva el título y el rumbo, y las que todavía no tienen imagen —o apuntan a un
+archivo que falta— lo dicen en su recuadro. La miniatura abre la fotografía a pantalla
+completa; **Situar** hace lo contrario y abre el plano centrado en el punto desde donde se
+tomó; y el botón de la flecha la **descarga**.
 
 ### Cargar fotografías de golpe
 
@@ -187,6 +189,10 @@ una capa con nombre propio.
 | Otras superficies | los dos tonos intermedios que no entran en la leyenda |
 | Trazado | todo el dibujo de línea blanca: contornos, edificación y rótulos |
 | Leyenda · Rótulo | la muestra de colores y el título, por si estorban al montar encima |
+
+Arriba del todo están además **Fotografías** y **Notas**: lo que va encima del dibujo también
+se apaga y se enciende. Esas dos funcionan aunque el plano se abra desde el disco, porque no
+dependen de leer el archivo del dibujo.
 
 Pulsar el nombre la apaga y la vuelve a encender. **Aislar** deja esa sola a plena vista y
 atenúa el resto, para comprobar una superficie sin perder de vista dónde cae.

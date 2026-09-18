@@ -373,6 +373,7 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
   font:10px/1 var(--plano); letter-spacing:.15em; text-transform:uppercase;
   transition:all .12s; display:inline-flex; align-items:center; gap:6px;
 }
+a.btn{ text-decoration:none; }
 .btn:hover{ border-color:var(--linea-2); color:var(--texto); }
 .btn.activo{ border-color:var(--foto); color:#fff; background:var(--foto-tenue); }
 .btn svg{ width:12px; height:12px; fill:currentColor; }
@@ -495,14 +496,47 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
   font-size:8.5px; letter-spacing:.14em; text-transform:uppercase;
   color:var(--texto-3); text-align:center; padding:12px; line-height:1.8;
 }
+/* --- galería como página ------------------------------------------
+   El plano es una aplicación a pantalla fija; la galería es una página
+   que se desplaza, así que suelta el bloqueo de scroll del cuerpo.
+   ------------------------------------------------------------------ */
+body.pagina{ height:auto; overflow:auto; overscroll-behavior:auto; }
+body.pagina .superior{ position:fixed; }
+/* En una página que se desplaza el crédito va al final del documento,
+   no clavado sobre las fichas. */
+body.pagina .credito{
+  position:static; max-width:1400px; margin:0 auto;
+  padding:0 18px 34px; text-align:right;
+}
+.pagina-cuerpo{
+  max-width:1400px; margin:0 auto;
+  padding:78px 18px 96px;
+}
+.pagina-cuerpo .galeria-rejilla{ padding:0; }
+
+/* Situar y descargar, en su propia fila: en una ficha estrecha no caben
+   junto al rumbo sin apretarse. */
+.ficha-botones{ display:flex; gap:7px; padding:0 9px 10px; }
+.ficha-botones .situar{ flex:1; text-align:center; text-decoration:none;
+                        display:inline-flex; align-items:center;
+                        justify-content:center; min-height:32px; }
+.ficha-botones .bajar{ flex:none; width:38px; padding:0; }
+.ficha-botones .bajar svg{ width:13px; height:13px; fill:currentColor; }
+.ficha-botones .bajar:disabled{ opacity:.35; cursor:default; }
+.ficha-botones .bajar:disabled:hover{ border-color:var(--linea); color:var(--texto-3); }
+
 /* --- visor de fotografía ------------------------------------------ */
+/* El relleno reserva el sitio del pie: sin él la imagen se centraba en
+   toda la pantalla y el título le caía encima. */
 .visor{
   position:fixed; inset:0; z-index:40; display:grid; place-items:center;
+  padding:66px 0 116px;
   background:rgba(3,3,4,.96); backdrop-filter:blur(8px);
 }
 .visor.oculto{ display:none; }
 .visor img{
-  max-width:86vw; max-height:78vh; border-radius:2px; display:block;
+  max-width:86vw; border-radius:2px; display:block;
+  max-height:calc(100vh - 200px); max-height:calc(100dvh - 200px);
   animation:visor-entra .22s cubic-bezier(.32,.72,0,1) both;
 }
 @keyframes visor-entra{
@@ -533,6 +567,15 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
   color:var(--texto-2); font-size:28px; cursor:pointer; line-height:1; z-index:41;
 }
 .visor-cerrar:hover{ color:#fff; }
+.visor-bajar{
+  position:fixed; top:22px; right:70px; z-index:41;
+  display:grid; place-items:center; width:36px; height:36px; padding:0;
+  background:none; border:1px solid var(--linea); border-radius:3px;
+  color:var(--texto-2); cursor:pointer; transition:all .12s;
+}
+.visor-bajar svg{ width:15px; height:15px; fill:currentColor; }
+.visor-bajar:hover{ border-color:var(--linea-2); color:#fff; }
+.visor-bajar:disabled{ opacity:.3; cursor:default; }
 
 /* --- ayuda -------------------------------------------------------- */
 .ayuda{
@@ -647,6 +690,10 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
     padding-top:11px; margin-top:4px;
   }
   .visor-cerrar{ min-width:44px; min-height:44px; }
+  .visor-bajar{ width:44px; height:44px; right:74px; }
+  .visor{ padding:58px 0 134px; }
+  .visor img{ max-height:calc(100vh - 212px); max-height:calc(100dvh - 212px); }
+  .pagina-cuerpo{ padding:72px 12px 90px; }
 
   .ayuda{ display:none; }
   /* Sobre la barra anclada, y por debajo del panel de la marca. */

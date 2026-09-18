@@ -248,7 +248,7 @@ function pintarMarcas() {
     capa.appendChild(d);
 
     // tirador para girar, solo en la marca seleccionada
-    if (seleccion === m.id && m.tipo === 'foto') {
+    if (seleccion === m.id && m.tipo === 'foto' && !bloqueo) {
       const r = (m.rumbo || 0) * Math.PI / 180;
       const g = document.createElement('div');
       g.className = 'giro';
@@ -274,16 +274,30 @@ let encuadrePendiente = true;
 
 const alturaMenu = () => $('#menu').getBoundingClientRect().height;
 
+/* Lo que la barra de herramientas tapa por abajo: flotante con su margen
+   en escritorio, anclada al borde en táctil. Sin descontarla, el plano se
+   encuadraba en una caja que seguía por debajo de ella y quedaba empujado
+   hacia abajo, con una banda negra arriba. */
+const alturaBarra = () => {
+  const b = $('.barra').getBoundingClientRect();
+  return Math.max(0, innerHeight - b.top);
+};
+
+/* Centro del hueco que queda entre el menú y la barra. */
+function centroLibre() {
+  const sup = alturaMenu();
+  return [innerWidth / 2, sup + (innerHeight - sup - alturaBarra()) / 2];
+}
+
 function encuadrar() {
   const m = 0.05;
   const ancho = innerWidth;
-  /* El menú superior se queda con su franja: el plano se encuadra en lo
-     que sobra, no en la ventana entera. */
-  const libre = innerHeight - alturaMenu();
+  const sup = alturaMenu();
+  const libre = innerHeight - sup - alturaBarra();
   if (ancho < 1 || libre < 1) { encuadrePendiente = true; return; }
   vista.z = Math.min(ancho / (ANCHO * (1 + m)), libre / (ALTO * (1 + m)));
   vista.x = (ancho - ANCHO * vista.z) / 2;
-  vista.y = alturaMenu() + (libre - ALTO * vista.z) / 2;
+  vista.y = sup + (libre - ALTO * vista.z) / 2;
   encuadrePendiente = false;
   pintar();
 }
@@ -355,7 +369,14 @@ lienzo.addEventListener('pointerdown', e => {
   if (marca) {
     const m = marcas.find(x => x.id === marca.dataset.id);
     if (m) {
-      moviendo = { m, sx: e.clientX, sy: e.clientY, ox: m.x, oy: m.y, movido: false };
+      /* Con el candado echado la marca no se mueve, pero el toque sigue
+         abriéndola; el arrastre se lo queda el plano. */
+      const fijo = bloqueo && m.tipo === 'foto';
+      moviendo = { m, sx: e.clientX, sy: e.clientY, ox: m.x, oy: m.y,
+                   movido: false, fijo };
+      if (!fijo) return;
+      arrastre = { sx: e.clientX, sy: e.clientY, x: vista.x, y: vista.y };
+      lienzo.classList.add('arrastrando');
       return;
     }
   }
@@ -395,10 +416,13 @@ lienzo.addEventListener('pointermove', e => {
     const dx = (e.clientX - moviendo.sx) / vista.z;
     const dy = (e.clientY - moviendo.sy) / vista.z;
     if (Math.abs(dx) + Math.abs(dy) > 1.5) moviendo.movido = true;
-    moviendo.m.x = moviendo.ox + dx;
-    moviendo.m.y = moviendo.oy + dy;
-    pintarMarcas();
-    return;
+    /* Bloqueada: no se toca su posición y el gesto sigue hasta el plano. */
+    if (!moviendo.fijo) {
+      moviendo.m.x = moviendo.ox + dx;
+      moviendo.m.y = moviendo.oy + dy;
+      pintarMarcas();
+      return;
+    }
   }
 
   if (arrastre) {
@@ -430,7 +454,7 @@ function soltar(e) {
     if (m) guardar(m);
   } else if (moviendo) {
     const m = moviendo.m;
-    if (moviendo.movido) { m.situada = true; guardar(m); }
+    if (moviendo.movido) { if (!moviendo.fijo) { m.situada = true; guardar(m); } }
     else if (esSegundoClic(m.id)) {
       seleccion = m.id;
       if (m.tipo === 'foto') abrirVisor(m); else abrirPanel();
@@ -637,6 +661,7 @@ function abrirPanel() {
   alternarGaleria(false);
   alternarHoja(false);
   alternarCapas(false);
+  alternarPlano(false);
   cerrarGlobo();
   $('#panel').classList.remove('oculto');
   $('#panel-titulo').textContent = m.tipo === 'foto' ? 'Fotografía' : 'Nota';
@@ -697,10 +722,10 @@ $('#borrar-marca').addEventListener('click', () => {
 });
 
 /* --- globo de la marca ---------------------------------------------
-   Tocar una fotografía la abre junto a su punto. El panel del borde
-   sigue estando para editarla, pero deja de ser lo primero que sale:
-   mirar una foto es lo que más se hace y no debería mover la vista al
-   otro extremo de la pantalla.
+   Tocar una fotografía la muestra junto a su punto, y nada más: sin
+   título, sin rumbo y sin botones. Es una ojeada, no una ficha; el dato
+   ya está en el plano y en la galería. Al pulsarla se abre a pantalla
+   completa; para editarla, la galería lleva a su panel.
    ------------------------------------------------------------------ */
 const MARGEN_GLOBO = 12;
 
@@ -721,11 +746,6 @@ function abrirGlobo(m) {
   } else {
     imagen.appendChild(sinImagen('Todavía sin fotografía'));
   }
-
-  $('#globo-titulo').textContent = m.titulo || 'Sin título';
-  $('#globo-rumbo').textContent = m.situada
-    ? 'Cámara hacia ' + Math.round(m.rumbo || 0) + '° ' + cardinal(m.rumbo || 0)
-    : 'Sin situar';
 
   /* Se mide con el globo ya visible: antes no tiene alto. */
   globo.classList.remove('oculto');
@@ -763,15 +783,6 @@ $('#globo-imagen').addEventListener('click', () => {
   const m = marcas.find(x => x.id === seleccion);
   if (m) abrirVisor(m);
 });
-$('#globo-ver').addEventListener('click', () => {
-  const m = marcas.find(x => x.id === seleccion);
-  if (m) abrirVisor(m);
-});
-$('#globo-editar').addEventListener('click', () => {
-  cerrarGlobo();
-  abrirPanel();
-});
-
 /* --- visor -------------------------------------------------------- */
 function abrirVisor(m) {
   const cuerpo = $('#visor-cuerpo');
@@ -808,7 +819,7 @@ function alternarGaleria(abrir) {
   /* La galería ocupa todo el ancho y taparía el panel de la marca. */
   if (mostrar) {
     cerrarPanel(); cerrarGlobo(); alternarHoja(false); alternarCapas(false);
-    pintarGaleria();
+    alternarPlano(false); pintarGaleria();
   }
 }
 
@@ -888,10 +899,10 @@ function pintarGaleria() {
 /* Centra el plano en una marca, en el hueco que queda bajo el menú, y
    la deja abierta en el panel. */
 function situar(m) {
-  const sup = alturaMenu();
+  const [cx, cy] = centroLibre();
   const z = Math.max(vista.z, 1);
-  vista.x = innerWidth / 2 - m.x * z;
-  vista.y = sup + (innerHeight - sup) / 2 - m.y * z;
+  vista.x = cx - m.x * z;
+  vista.y = cy - m.y * z;
   vista.z = z;
   seleccion = m.id;
   alternarGaleria(false);
@@ -918,8 +929,8 @@ function indicarCuenta() {
    punto desde donde se tomaron.
    ------------------------------------------------------------------ */
 function aparcar(indice) {
-  const sup = alturaMenu();
-  const [cx, cy] = aPlano(innerWidth / 2, sup + (innerHeight - sup) / 2);
+  const [px, py] = centroLibre();
+  const [cx, cy] = aPlano(px, py);
   const paso = 42, porFila = 5;
   const x = cx + ((indice % porFila) - (porFila - 1) / 2) * paso;
   const y = cy + (Math.floor(indice / porFila) - 1) * paso;
@@ -1149,6 +1160,81 @@ function aislarCapa(clave) {
   aplicarCapas(); pintarCapas();
 }
 
+/* --- candado --------------------------------------------------------
+   Cerrado de salida y para siempre: lo normal es consultar el plano, no
+   reordenarlo, y una marca desplazada de un roce es una toma perdida sin
+   que nadie se entere. Se abre con pulsación sostenida, no con un toque,
+   para que no ocurra por accidente al manejarlo con una mano.
+   ------------------------------------------------------------------ */
+const CLAVE_BLOQUEO = 'plano-fray-anton-bloqueo';
+const ESPERA_CANDADO = 600;
+
+let bloqueo = true;
+try { bloqueo = localStorage.getItem(CLAVE_BLOQUEO) !== 'abierto'; } catch (e) { /* sin memoria */ }
+
+function pintarCandado() {
+  const b = $('#candado');
+  b.classList.toggle('bloqueado', bloqueo);
+  b.setAttribute('aria-pressed', String(bloqueo));
+  b.title = bloqueo
+    ? 'Posición de las fotografías bloqueada. Mantén pulsado para desbloquear'
+    : 'Posición desbloqueada. Mantén pulsado para bloquear';
+}
+
+function alternarBloqueo() {
+  bloqueo = !bloqueo;
+  try {
+    localStorage.setItem(CLAVE_BLOQUEO, bloqueo ? 'cerrado' : 'abierto');
+  } catch (e) { /* sin memoria */ }
+  pintarCandado();
+  avisar(bloqueo
+    ? 'Posición bloqueada: las marcas ya no se mueven al arrastrarlas'
+    : 'Posición desbloqueada: ya puedes arrastrar las marcas', 3400);
+}
+
+let tempCandado = null;
+
+$('#candado').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  $('#candado').classList.add('presionando');
+  tempCandado = setTimeout(() => {
+    tempCandado = null;
+    $('#candado').classList.remove('presionando');
+    alternarBloqueo();
+  }, ESPERA_CANDADO);
+});
+
+/* Soltar antes de tiempo no cambia nada: solo recuerda cómo se abre. */
+function soltarCandado() {
+  $('#candado').classList.remove('presionando');
+  if (!tempCandado) return;
+  clearTimeout(tempCandado);
+  tempCandado = null;
+  avisar('Mantén pulsado el candado para '
+    + (bloqueo ? 'desbloquear' : 'bloquear') + ' la posición', 3000);
+}
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev =>
+  $('#candado').addEventListener(ev, soltarCandado));
+
+pintarCandado();
+
+/* --- vista del plano ----------------------------------------------- */
+const planoAbierto = () => !$('#panel-plano').classList.contains('oculta');
+
+function alternarPlano(abrir) {
+  const mostrar = abrir === undefined ? !planoAbierto() : abrir;
+  $('#panel-plano').classList.toggle('oculta', !mostrar);
+  $('#abrir-plano').classList.toggle('activo', mostrar);
+  if (mostrar) {
+    cerrarPanel(); cerrarGlobo(); alternarGaleria(false); alternarCapas(false);
+    alternarHoja(false);
+  }
+}
+
+$('#abrir-plano').addEventListener('click', () => alternarPlano());
+$('#cerrar-plano').addEventListener('click', () => alternarPlano(false));
+$('#plano-encuadrar').addEventListener('click', () => { alternarPlano(false); encuadrar(); });
+
 const capasAbiertas = () => !$('#capas').classList.contains('oculta');
 
 function alternarCapas(abrir) {
@@ -1157,7 +1243,7 @@ function alternarCapas(abrir) {
   $('#abrir-capas').classList.toggle('activo', mostrar);
   if (mostrar) {
     cerrarPanel(); cerrarGlobo(); alternarGaleria(false); alternarHoja(false);
-    pintarCapas();
+    alternarPlano(false); pintarCapas();
   }
 }
 
@@ -1218,13 +1304,15 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (k === 'escape') {
     cerrarVisor(); cerrarGlobo(); cerrarPanel(); alternarGaleria(false);
-    alternarHoja(false); alternarCapas(false); elegirHerramienta('mover');
+    alternarHoja(false); alternarCapas(false); alternarPlano(false);
+    elegirHerramienta('mover');
   }
   if (k === 'v') elegirHerramienta('mover');
   if (k === 'f') elegirHerramienta('foto');
   if (k === 'n') elegirHerramienta('nota');
   if (k === 'g') alternarGaleria();
   if (k === 'c') alternarCapas();
+  if (k === 'p') alternarPlano();
   if (k === 'e') encuadrar();
   if (k === 'h') $('#ayuda').classList.toggle('oculta');
   if ((k === 'delete' || k === 'backspace') && seleccion) $('#borrar-marca').click();

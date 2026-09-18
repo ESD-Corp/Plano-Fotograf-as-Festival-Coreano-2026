@@ -19,11 +19,12 @@ su marca en ese punto y solo queda orientarla.
 
 ## Ver las fotografías
 
-**Un toque** en una marca roja la abre ahí mismo, en un globo junto a su punto: la miniatura,
-el título y el rumbo, con **Ver foto** para ampliarla y **Editar** para abrir su panel. El
-globo crece desde el punto que has tocado y se voltea solo si no cabe por arriba.
+**Un toque** en una marca roja enseña la fotografía ahí mismo, junto a su punto. Solo la
+fotografía: ni título, ni rumbo, ni botones. Es una ojeada, y el dato ya está en el plano y en
+la galería. El globo crece desde el punto que has tocado y se voltea solo si no cabe arriba.
 
-**Doble clic** salta directo a la imagen a pantalla completa.
+Pulsando la imagen, o con **doble clic** en la marca, se abre a pantalla completa con su
+título, su nota y el rumbo.
 
 ## Cómo se leen las marcas
 
@@ -153,6 +154,23 @@ trabajando solo en local, con un aviso que lo explica.
 
 Sin `PLANO_CLAVE` definida nada cambia: las rutas quedan abiertas como hasta ahora.
 
+## El candado
+
+Arriba a la derecha hay un candado, y de salida está **cerrado**. Con el candado echado las
+marcas de fotografía no se mueven: arrastrar una desplaza el plano, no la marca, y el tirador
+de giro no aparece. Lo normal es consultar el plano, no reordenarlo, y una marca corrida de un
+roce es una toma perdida sin que nadie se entere.
+
+Para abrirlo, **mantén pulsado** el candado hasta que se llene; un toque suelto no hace nada,
+solo recuerda cómo se abre. Abierto se pone en rojo, que es el aviso de que ahí ya se puede
+mover algo. El estado se recuerda en el navegador.
+
+## La vista del plano
+
+El botón **Plano** (atajo **P**) reúne lo que afecta al dibujo de fondo: el **deslizador de
+opacidad**, que lo atenúa sin tocar las marcas —lo que hace falta cuando se dibuja el montaje
+encima—, y **Encuadrar el plano**.
+
 ## Las capas del plano
 
 El botón **Capas** de la barra superior (atajo **C**) abre el despiece del dibujo. El plano no
@@ -172,9 +190,6 @@ una capa con nombre propio.
 
 Pulsar el nombre la apaga y la vuelve a encender. **Aislar** deja esa sola a plena vista y
 atenúa el resto, para comprobar una superficie sin perder de vista dónde cae.
-
-El **deslizador de opacidad** baja el plano entero sin tocar las marcas, que es lo que hace
-falta cuando se dibuja el montaje encima y el fondo compite con él.
 
 Lo que apagues y la opacidad se recuerdan en el navegador. El aislamiento no: al volver, un
 plano casi entero atenuado se lee como una avería y no como un modo.
@@ -203,6 +218,7 @@ mayor, así que no hace falta afinar con la yema. El panel de una marca deja **V
 | **F** | insertar fotografía |
 | **N** | dejar una nota |
 | **G** | abrir y cerrar la galería |
+| **P** | abrir y cerrar la vista del plano |
 | **C** | abrir y cerrar las capas |
 | **E** | encuadrar el plano |
 | **H** | ocultar la ayuda |

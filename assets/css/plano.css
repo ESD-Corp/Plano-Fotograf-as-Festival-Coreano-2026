@@ -618,6 +618,8 @@ body.pagina .credito{
   .menu{ padding:8px 12px; }
   .cuenta{ display:none; }
   .menu-centro .btn{ min-height:44px; padding:0 16px; font-size:11px; }
+  .candado{ width:44px; height:44px; }
+  .candado svg{ width:17px; height:17px; }
 
   .galeria-rejilla{ grid-template-columns:repeat(auto-fill,minmax(146px,1fr));
                     gap:10px; padding:10px 12px 16px; }
@@ -763,9 +765,18 @@ body.pagina .credito{
    y el plano ya lleva su propio rótulo dibujado: la barra se queda con
    los botones. */
 @media (max-width:560px){
-  .menu{ grid-template-columns:1fr; }
-  .menu-marca, .menu-acciones{ display:none; }
-  .menu-centro{ flex-wrap:wrap; justify-content:center; }
+  /* Se va el título, no la columna: el candado vive ahí y en táctil es
+     donde más falta hace, que es donde un roce mueve una marca. */
+  .menu-marca{ display:none; }
+  /* A este ancho la rejilla de tres columnas no da: el grupo central se
+     sale de su columna y se monta sobre el candado. Una fila simple
+     reparte el sitio sin cuentas. */
+  .menu{ display:flex; align-items:center; justify-content:center;
+         padding:6px 10px; gap:8px; }
+  .menu-acciones{ flex:none; }
+  .menu-centro{ flex:0 1 auto; flex-wrap:nowrap; min-width:0; gap:6px; }
+  .menu-centro .btn{ padding:0 10px; font-size:10px; letter-spacing:.1em; gap:5px; }
+  .menu-centro .btn svg{ width:11px; height:11px; }
   /* El rótulo del botón no cabe junto al título de la galería: queda el
      signo de más, que con el título «Fotografías» al lado se entiende. */
   #anadir-fotos span{ display:none; }

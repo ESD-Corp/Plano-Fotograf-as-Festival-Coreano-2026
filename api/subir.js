@@ -10,6 +10,7 @@
    ================================================================== */
 import { put } from '@vercel/blob';
 import { hayBlob, credenciales } from '../lib/blob.js';
+import { permitido } from '../lib/acceso.js';
 
 const TOPE = 3 * 1024 * 1024;
 const FORMATOS = /^image\/(jpeg|png|webp)$/;
@@ -21,6 +22,8 @@ export default async function handler(req, res) {
     res.setHeader('allow', 'POST');
     return res.status(405).json({ error: 'Método no admitido' });
   }
+
+  if (!permitido(req, res)) return;
 
   if (!hayBlob()) {
     return res.status(503).json({
@@ -63,6 +66,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ url });
 
   } catch (err) {
-    return res.status(500).json({ error: String(err?.message || err) });
+    console.error('[subir]', err);
+    return res.status(500).json({ error: 'No se pudo guardar la imagen' });
   }
 }

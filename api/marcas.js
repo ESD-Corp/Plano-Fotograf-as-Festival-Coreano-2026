@@ -9,6 +9,7 @@
    navegador sigue trabajando con su copia local.
    ================================================================== */
 import { hayBase, preparar, sql } from '../lib/base.js';
+import { permitido } from '../lib/acceso.js';
 
 const TIPOS = new Set(['foto', 'nota']);
 const LARGO_TEXTO = 2000;
@@ -48,6 +49,10 @@ export default async function handler(req, res) {
     res.setHeader('allow', METODOS.join(', '));
     return res.status(405).json({ error: 'Método no admitido' });
   }
+
+  // La credencial se comprueba antes que el estado de los stores: quien
+  // no tiene clave tampoco debe averiguar qué hay conectado detrás.
+  if (!permitido(req, res)) return;
 
   if (!hayBase()) {
     return res.status(503).json({
@@ -107,6 +112,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Petición incompleta' });
 
   } catch (err) {
-    return res.status(500).json({ error: String(err?.message || err) });
+    // El detalle queda en el registro de la función; hacia fuera solo
+    // el hecho, porque el mensaje del driver nombra host y credenciales.
+    console.error('[marcas]', err);
+    return res.status(500).json({ error: 'No se pudo completar la operación en la base de datos' });
   }
 }

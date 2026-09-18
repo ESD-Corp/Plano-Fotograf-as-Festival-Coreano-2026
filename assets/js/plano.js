@@ -29,15 +29,55 @@ let borrador = null;                // marca a medio colocar
    tiene base de datos y Blob conectados, ademas se sincroniza con
    ellos y las marcas se ven desde cualquier dispositivo.
    ------------------------------------------------------------------ */
-const nube = { base: false, blob: false };
+const nube = { base: false, blob: false, clave: false, autorizado: true };
+
+/* --- clave de acceso -----------------------------------------------
+   Si el despliegue define PLANO_CLAVE, el servidor la exige en cada
+   peticion. Se entra una vez con ?clave=… en la direccion; queda
+   guardada en este navegador y se borra de la barra de direcciones
+   para que no acabe en el historial ni en un enlace compartido.
+   ------------------------------------------------------------------ */
+const CLAVE_ACCESO = 'plano-fray-anton-clave';
+let claveAcceso = '';
+
+try {
+  const url = new URL(location.href);
+  const dada = url.searchParams.get('clave');
+  if (dada) {
+    localStorage.setItem(CLAVE_ACCESO, dada);
+    url.searchParams.delete('clave');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }
+  claveAcceso = localStorage.getItem(CLAVE_ACCESO) || '';
+} catch (e) {
+  /* Almacenamiento bloqueado: se trabaja sin clave. */
+}
+
+const cabeceras = (extra) => Object.assign({},
+  extra || {}, claveAcceso ? { 'x-plano-clave': claveAcceso } : {});
+
+/* Una respuesta 401 significa credencial, no ausencia de servidor. */
+function esClaveRechazada(r) {
+  if (r.status !== 401) return false;
+  nube.autorizado = false;
+  avisar('La clave de acceso no es válida. Abre el plano con ?clave=… para entrar', 6000);
+  return true;
+}
 
 async function detectarNube() {
   try {
-    const r = await fetch('/api/estado', { cache: 'no-store' });
+    const r = await fetch('/api/estado', { cache: 'no-store', headers: cabeceras() });
     if (!r.ok) return;
     const d = await r.json();
-    nube.base = Boolean(d.base);
-    nube.blob = Boolean(d.blob);
+    nube.clave = Boolean(d.clave);
+    nube.autorizado = d.autorizado !== false;
+    /* Sin autorización no se puede tocar ninguna de las dos rutas, así
+       que el plano trabaja en local en vez de fallar petición a petición. */
+    nube.base = Boolean(d.base) && nube.autorizado;
+    nube.blob = Boolean(d.blob) && nube.autorizado;
+    if (nube.clave && !nube.autorizado) {
+      avisar('Este plano pide una clave de acceso. Ábrelo con ?clave=… para compartir marcas', 6000);
+    }
   } catch (e) {
     /* Sin servidor: se trabaja solo en local. */
   }
@@ -93,9 +133,10 @@ async function enviar(m) {
   try {
     const r = await fetch('/api/marcas', {
       method: 'PUT',
-      headers: { 'content-type': 'application/json' },
+      headers: cabeceras({ 'content-type': 'application/json' }),
       body: JSON.stringify(normalizar(m)),
     });
+    if (esClaveRechazada(r)) return;
     if (!r.ok) throw new Error('error ' + r.status);
   } catch (e) {
     avisar('No se pudo guardar en el servidor; la marca queda en este navegador', 4000);
@@ -105,7 +146,8 @@ async function enviar(m) {
 async function borrarEnNube(id) {
   if (!nube.base) return;
   try {
-    await fetch('/api/marcas?id=' + encodeURIComponent(id), { method: 'DELETE' });
+    await fetch('/api/marcas?id=' + encodeURIComponent(id),
+                { method: 'DELETE', headers: cabeceras() });
   } catch (e) {
     /* Ya quedo borrada en local. */
   }
@@ -113,7 +155,8 @@ async function borrarEnNube(id) {
 
 async function cargarDeNube() {
   try {
-    const r = await fetch('/api/marcas', { cache: 'no-store' });
+    const r = await fetch('/api/marcas', { cache: 'no-store', headers: cabeceras() });
+    if (esClaveRechazada(r)) return;
     if (!r.ok) throw new Error('error ' + r.status);
     const d = await r.json();
     if (Array.isArray(d.marcas)) {
@@ -192,12 +235,22 @@ function pintarMarcas() {
 const escapar = (t) => String(t).replace(/[<>&"]/g,
   c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 
-/* --- encuadre y zoom ---------------------------------------------- */
+/* --- encuadre y zoom ----------------------------------------------
+   Si la ventana todavía no tiene medidas —pestaña en segundo plano,
+   panel oculto, arranque en móvil— la escala saldría 0 y el plano
+   quedaría invisible para siempre, porque el `resize` solo repintaba.
+   Cuando no se puede calcular, el encuadre queda pendiente y se
+   reintenta en cuanto la ventana tiene tamaño. */
+let encuadrePendiente = true;
+
 function encuadrar() {
   const m = 0.05;
-  vista.z = Math.min(innerWidth / (ANCHO * (1 + m)), innerHeight / (ALTO * (1 + m)));
-  vista.x = (innerWidth  - ANCHO * vista.z) / 2;
-  vista.y = (innerHeight - ALTO  * vista.z) / 2;
+  const ancho = innerWidth, alto = innerHeight;
+  if (ancho < 1 || alto < 1) { encuadrePendiente = true; return; }
+  vista.z = Math.min(ancho / (ANCHO * (1 + m)), alto / (ALTO * (1 + m)));
+  vista.x = (ancho - ANCHO * vista.z) / 2;
+  vista.y = (alto  - ALTO  * vista.z) / 2;
+  encuadrePendiente = false;
   pintar();
 }
 
@@ -244,6 +297,9 @@ lienzo.addEventListener('pointerdown', e => {
     const [a, b] = [...punteros.values()];
     pinza = { d: Math.hypot(b.x - a.x, b.y - a.y), z: vista.z };
     arrastre = orientando = moviendo = null;
+    /* Si la pinza empieza con una marca a medio colocar, se descarta:
+       de lo contrario quedaba suelta y se creaba al levantar los dedos. */
+    if (borrador) { borrador = null; pintarMarcas(); }
     return;
   }
 
@@ -338,8 +394,14 @@ function soltar(e) {
     girando = null;
     if (m) guardar(m);
   } else if (moviendo) {
-    if (moviendo.movido) { guardar(moviendo.m); }
-    else { seleccion = moviendo.m.id; abrirPanel(); }
+    const m = moviendo.m;
+    if (moviendo.movido) { guardar(m); }
+    else if (esSegundoClic(m.id)) {
+      seleccion = m.id;
+      if (m.tipo === 'foto') abrirVisor(m); else abrirPanel();
+    } else {
+      seleccion = m.id; abrirPanel();
+    }
     moviendo = null;
   }
 
@@ -354,6 +416,20 @@ lienzo.addEventListener('wheel', e => {
   e.preventDefault();
   zoom(Math.exp(-e.deltaY * (e.ctrlKey ? .012 : .0022)), e.clientX, e.clientY);
 }, { passive: false });
+
+/* El doble clic sobre una marca no llega por el evento `dblclick`: cada
+   clic repinta la capa y sustituye el nodo, así que el navegador nunca
+   ve dos clics sobre el mismo elemento y no lo emite. Se cuenta a mano
+   al soltar. El listener nativo se mantiene para el resto del lienzo. */
+const MS_DOBLE = 400;
+let ultimoClic = { id: null, t: 0 };
+
+function esSegundoClic(id) {
+  const ahora = Date.now();
+  const doble = ultimoClic.id === id && (ahora - ultimoClic.t) < MS_DOBLE;
+  ultimoClic = doble ? { id: null, t: 0 } : { id, t: ahora };
+  return doble;
+}
 
 lienzo.addEventListener('dblclick', e => {
   const marca = e.target.closest('.marca');
@@ -384,15 +460,35 @@ lienzo.addEventListener('drop', e => {
 
 /* Las imágenes elegidas en esta sesión se muestran al momento. Una vez
    subidas, `archivo` guarda la URL del Blob; sin servidor guarda el
-   nombre, y la foto se busca en la carpeta fotos/. */
-const previews = new Map();
-function recordarPreview(nombre, archivo) {
-  previews.set(nombre, URL.createObjectURL(archivo));
+   nombre, y la foto se busca en la carpeta fotos/.
+
+   La vista previa se guarda por marca y no por nombre de archivo: dos
+   fotografías distintas que se llamaran igual se pisaban entre sí. El
+   objeto URL se libera al sustituirlo y al borrar la marca, para que
+   una sesión larga no acumule memoria. */
+const previews = new Map();          // id de marca -> objeto URL
+
+function recordarPreview(id, archivo) {
+  olvidarPreview(id);
+  previews.set(id, URL.createObjectURL(archivo));
 }
-function rutaFoto(archivo) {
-  if (!archivo) return '';
-  return previews.get(archivo)
-      || (/^https?:\/\//i.test(archivo) ? archivo : 'fotos/' + archivo);
+
+function olvidarPreview(id) {
+  const url = previews.get(id);
+  if (url) { URL.revokeObjectURL(url); previews.delete(id); }
+}
+
+function olvidarTodasLasPreviews() {
+  previews.forEach(url => URL.revokeObjectURL(url));
+  previews.clear();
+}
+
+function rutaFoto(m) {
+  if (!m) return '';
+  const previa = previews.get(m.id);
+  if (previa) return previa;
+  if (!m.archivo) return '';
+  return /^https?:\/\//i.test(m.archivo) ? m.archivo : 'fotos/' + m.archivo;
 }
 
 /* --- subida de fotografías -----------------------------------------
@@ -436,7 +532,7 @@ async function subir(archivo) {
   const datos = await aBase64(reducida);
   const r = await fetch('/api/subir', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: cabeceras({ 'content-type': 'application/json' }),
     body: JSON.stringify({
       nombre: archivo.name.replace(/\.[^.]+$/, '') + '.jpg',
       tipo: 'image/jpeg',
@@ -451,21 +547,25 @@ async function subir(archivo) {
 /* Asocia una imagen a una marca: se ve al instante, y si hay Blob
    conectado se sube y la marca pasa a apuntar a la URL definitiva. */
 async function adjuntar(m, f) {
-  recordarPreview(f.name, f);
+  recordarPreview(m.id, f);
   m.archivo = f.name;
   if (!m.titulo) m.titulo = f.name.replace(/\.[^.]+$/, '');
   guardar(m);
   abrirPanel();
 
   if (!nube.blob) {
-    avisar('Foto añadida. Arrastra el tirador para orientarla', 4200);
+    /* Sin Blob la marca solo guarda el nombre y la foto se busca en
+       fotos/, así que dos archivos homónimos no pueden convivir ahí. */
+    const choque = marcas.some(o => o.id !== m.id && o.archivo === f.name);
+    avisar(choque
+      ? `Otra marca ya usa «${f.name}». Renombra una de las dos antes de copiarlas a fotos/`
+      : 'Foto añadida. Arrastra el tirador para orientarla', 5400);
     return;
   }
 
   avisar('Subiendo la fotografía…');
   try {
     const url = await subir(f);
-    previews.set(url, previews.get(f.name));
     m.archivo = url;
     guardar(m);
     abrirPanel();
@@ -485,11 +585,14 @@ function abrirPanel() {
   $('#f-titulo').value = m.titulo || '';
   $('#f-nota').value = m.nota || '';
   $('#bloque-foto').style.display = m.tipo === 'foto' ? '' : 'none';
+  /* Una nota no tiene imagen: ofrecer «Ver foto» solo abría el visor vacío. */
+  $('#ver-foto').style.display = m.tipo === 'foto' ? '' : 'none';
 
   const zona = $('#zona-archivo');
   if (m.tipo === 'foto') {
-    zona.innerHTML = m.archivo
-      ? `<img src="${escapar(rutaFoto(m.archivo))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('p'),{innerHTML:'<b>Imagen no disponible</b>La marca apunta a un archivo que no se encuentra'}))">`
+    const ruta = rutaFoto(m);
+    zona.innerHTML = ruta
+      ? `<img src="${escapar(ruta)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('p'),{innerHTML:'<b>Imagen no disponible</b>La marca apunta a un archivo que no se encuentra'}))">`
       : '<p><b>Elegir fotografía</b>o arrastra la imagen sobre el plano</p>';
   }
   pintarMarcas();
@@ -530,14 +633,16 @@ $('#borrar-marca').addEventListener('click', () => {
   const m = marcas.find(x => x.id === seleccion);
   if (!m) return;
   marcas = marcas.filter(x => x.id !== m.id);
+  olvidarPreview(m.id);
   guardarLocal(); borrarEnNube(m.id); cerrarPanel();
 });
 
 /* --- visor -------------------------------------------------------- */
 function abrirVisor(m) {
   const cuerpo = $('#visor-cuerpo');
-  cuerpo.innerHTML = m.archivo
-    ? `<img src="${escapar(rutaFoto(m.archivo))}" alt="${escapar(m.titulo)}"
+  const ruta = rutaFoto(m);
+  cuerpo.innerHTML = ruta
+    ? `<img src="${escapar(ruta)}" alt="${escapar(m.titulo)}"
          onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'vacio',textContent:'No se encuentra la imagen de esta marca'}))">`
     : '<div class="vacio">Esta marca todavía no tiene fotografía</div>';
   $('#visor-titulo').textContent = m.titulo || 'Sin título';
@@ -573,6 +678,9 @@ $('#entrada-json').addEventListener('change', e => {
     try {
       const datos = JSON.parse(lector.result);
       if (!Array.isArray(datos)) throw new Error();
+      /* Las marcas anteriores desaparecen: sus vistas previas ya no
+         apuntan a nada y hay que liberarlas. */
+      olvidarTodasLasPreviews();
       marcas = datos.map(normalizar);
       guardarLocal(); cerrarPanel(); pintarMarcas();
       avisar(marcas.length + ' marcas importadas', 2600);
@@ -604,7 +712,15 @@ addEventListener('keydown', e => {
   if ((k === 'delete' || k === 'backspace') && seleccion) $('#borrar-marca').click();
 });
 
-addEventListener('resize', pintar);
+addEventListener('resize', () => { encuadrePendiente ? encuadrar() : pintar(); });
+
+/* La ventana puede ganar tamaño sin emitir `resize` —al mostrarse una
+   pestaña que arrancó oculta, por ejemplo—, así que el encuadre
+   pendiente se vigila también por observador. */
+if (typeof ResizeObserver === 'function') {
+  new ResizeObserver(() => { if (encuadrePendiente) encuadrar(); })
+    .observe(document.documentElement);
+}
 
 /* --- arranque ------------------------------------------------------
    Se pinta de inmediato con la copia local, y en cuanto se sabe si hay

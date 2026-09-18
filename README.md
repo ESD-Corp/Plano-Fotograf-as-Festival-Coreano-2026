@@ -70,6 +70,9 @@ fotos entre dispositivos, y se crea desde el panel de Vercel, en **Storage**:
 | Postgres | `DATABASE_URL` (o `POSTGRES_URL`) | Las marcas |
 | Blob | `BLOB_READ_WRITE_TOKEN` | Las fotografías |
 
+Hay una tercera variable, `PLANO_CLAVE`, que no la pone Vercel: se escribe a mano y cierra las
+rutas con contraseña. Más abajo.
+
 Al enlazarlos al proyecto, Vercel pone las variables solo. No hay que crear la tabla: se crea
 sola la primera vez que se guarda una marca.
 
@@ -85,6 +88,28 @@ Las rutas:
 
 Sin store conectado, `/api/marcas` y `/api/subir` responden **503** con `nube:false`, y el
 plano sigue trabajando en local sin romperse.
+
+## Quién puede escribir
+
+Tal cual se despliega, cualquiera que dé con la dirección puede añadir, cambiar o borrar
+marcas y subir fotos. Para un plano de trabajo interno suele bastar, pero la URL de Vercel no
+es secreta.
+
+Para cerrarlo, añade en **Settings → Environment Variables** una variable `PLANO_CLAVE` con la
+contraseña que quieras. A partir de ahí `/api/marcas` y `/api/subir` responden **401** a quien
+no la traiga.
+
+Se entra una vez con la clave en la dirección:
+
+```
+https://<el-despliegue>.vercel.app/?clave=la-que-pusiste
+```
+
+El plano la guarda en ese navegador y la borra de la barra de direcciones, así que no queda en
+el historial ni viaja en un enlace copiado. Quien abra el plano sin ella lo ve igual pero
+trabajando solo en local, con un aviso que lo explica.
+
+Sin `PLANO_CLAVE` definida nada cambia: las rutas quedan abiertas como hasta ahora.
 
 ## Atajos
 

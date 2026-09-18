@@ -111,22 +111,31 @@ html,body{
 .modo.conectado::before{ background:#4a9d5f; }
 
 /* --- panel lateral ------------------------------------------------ */
+/* El alto se limita a lo que queda entre el borde superior y la barra de
+   herramientas, y el cuerpo desplaza: con una foto vertical el panel
+   crecía por debajo de la pantalla y dejaba Ver foto y Borrar fuera. */
 .panel{
   position:fixed; top:22px; right:22px; width:286px; z-index:25;
   background:var(--panel); border:1px solid var(--linea); border-radius:3px;
   backdrop-filter:blur(14px); overflow:hidden;
+  display:flex; flex-direction:column;
+  max-height:calc(100vh - 96px);
+  max-height:calc(100dvh - 96px);
 }
 .panel.oculto{ display:none; }
 .panel-cab{
   display:flex; align-items:center; justify-content:space-between;
   padding:11px 13px; border-bottom:1px solid var(--linea);
 }
+.panel-cab{ flex:0 0 auto; }
 .panel-cab h2{ margin:0; font-size:9.5px; font-weight:400;
   letter-spacing:.22em; text-transform:uppercase; color:var(--texto-2); }
 .cerrar{ background:none; border:none; color:var(--texto-3); cursor:pointer;
   font-size:17px; line-height:1; padding:0 3px; }
 .cerrar:hover{ color:var(--texto); }
-.panel-cuerpo{ padding:13px; }
+.panel-cuerpo{ padding:13px; overflow-y:auto; overscroll-behavior:contain; }
+.panel-cuerpo::-webkit-scrollbar{ width:6px; }
+.panel-cuerpo::-webkit-scrollbar-thumb{ background:var(--linea-2); border-radius:3px; }
 
 .campo{ display:block; margin-bottom:12px; }
 .campo span{ display:block; font-size:9px; letter-spacing:.2em;
@@ -149,7 +158,10 @@ html,body{
 .zona-archivo p{ margin:0; font-size:10.5px; letter-spacing:.1em;
   color:var(--texto-3); line-height:1.6; }
 .zona-archivo b{ color:var(--texto-2); font-weight:400; display:block; }
-.zona-archivo img{ width:100%; border-radius:2px; display:block; }
+/* Las fotos de teléfono son verticales: se limita el alto para que la
+   miniatura no empuje los campos y los botones fuera del panel. */
+.zona-archivo img{ width:100%; max-height:34vh; object-fit:contain;
+  border-radius:2px; display:block; }
 .acciones{ display:flex; gap:7px; margin-top:4px; }
 .acciones .btn{ flex:1; justify-content:center; }
 .btn-fuerte{ border-color:var(--foto); color:#fff; background:var(--foto-tenue); }

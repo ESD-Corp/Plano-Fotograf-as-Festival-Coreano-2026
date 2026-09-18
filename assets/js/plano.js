@@ -612,6 +612,7 @@ function abrirPanel() {
   /* Los dos ocupan la misma esquina: quien abre el panel deja de mirar
      la galería. Es la simétrica de abrir la galería, que cierra el panel. */
   alternarGaleria(false);
+  alternarHoja(false);
   $('#panel').classList.remove('oculto');
   $('#panel-titulo').textContent = m.tipo === 'foto' ? 'Fotografía' : 'Nota';
   $('#f-titulo').value = m.titulo || '';
@@ -703,7 +704,7 @@ function alternarGaleria(abrir) {
   $('#galeria').classList.toggle('oculta', !mostrar);
   $('#abrir-galeria').classList.toggle('activo', mostrar);
   /* La galería ocupa todo el ancho y taparía el panel de la marca. */
-  if (mostrar) { cerrarPanel(); pintarGaleria(); }
+  if (mostrar) { cerrarPanel(); alternarHoja(false); pintarGaleria(); }
 }
 
 const sinImagen = (texto) => Object.assign(document.createElement('span'),
@@ -891,6 +892,42 @@ $('#entrada-json').addEventListener('change', e => {
   lector.readAsText(f);
 });
 
+/* --- hoja inferior en táctil ---------------------------------------
+   En el móvil no caben en la barra los controles secundarios sin
+   partirla en filas de botones diminutos. En vez de duplicarlos, se
+   mudan los mismos nodos a la hoja: conservan su id y sus escuchas.
+   ------------------------------------------------------------------ */
+const ESTRECHO = matchMedia('(max-width: 820px)');
+const secundarios = $('#secundarios');
+
+function colocarSecundarios() {
+  const destino = ESTRECHO.matches ? $('#hoja-cuerpo') : $('.barra');
+  if (secundarios.parentElement !== destino) destino.appendChild(secundarios);
+  if (!ESTRECHO.matches) alternarHoja(false);
+}
+
+function alternarHoja(abrir) {
+  const hoja = $('#hoja');
+  const mostrar = abrir === undefined ? hoja.classList.contains('oculta') : abrir;
+  hoja.classList.toggle('oculta', !mostrar);
+  $('#abrir-hoja').setAttribute('aria-expanded', String(mostrar));
+}
+
+$('#abrir-hoja').addEventListener('click', () => alternarHoja());
+$('#cerrar-hoja').addEventListener('click', () => alternarHoja(false));
+/* Tocar fuera del panel la cierra. */
+$('#hoja').addEventListener('click', e => {
+  if (e.target.id === 'hoja') alternarHoja(false);
+});
+/* Elegir una opción la cierra: la acción ya ocurre en el plano. */
+$('#hoja-cuerpo').addEventListener('click', e => {
+  const boton = e.target.closest('.btn');
+  if (boton && !boton.closest('.zoom')) alternarHoja(false);
+});
+
+ESTRECHO.addEventListener('change', colocarSecundarios);
+colocarSecundarios();
+
 /* --- botones y teclado -------------------------------------------- */
 $('#h-mover').addEventListener('click', () => elegirHerramienta('mover'));
 $('#h-foto').addEventListener('click',  () => elegirHerramienta('foto'));
@@ -903,7 +940,8 @@ addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
   const k = e.key.toLowerCase();
   if (k === 'escape') {
-    cerrarVisor(); cerrarPanel(); alternarGaleria(false); elegirHerramienta('mover');
+    cerrarVisor(); cerrarPanel(); alternarGaleria(false); alternarHoja(false);
+    elegirHerramienta('mover');
   }
   if (k === 'v') elegirHerramienta('mover');
   if (k === 'f') elegirHerramienta('foto');

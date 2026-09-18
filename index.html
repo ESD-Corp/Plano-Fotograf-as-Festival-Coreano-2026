@@ -50,26 +50,48 @@
 
 <!-- HERRAMIENTAS ---------------------------------------------------->
 <footer class="barra">
-  <button class="btn activo" id="h-mover" title="Mover y seleccionar (V)">
-    <svg viewBox="0 0 24 24"><path d="M5 3 19 12 12.5 13.5 10 21 5 3Z"/></svg>Mover
-  </button>
-  <button class="btn" id="h-foto" title="Insertar fotografía (F)">
-    <svg viewBox="0 0 24 24"><path d="M9 3 7.5 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.5L15 3H9Zm3 5.5A5.5 5.5 0 1 1 6.5 14 5.5 5.5 0 0 1 12 8.5Zm0 2A3.5 3.5 0 1 0 15.5 14 3.5 3.5 0 0 0 12 10.5Z"/></svg>Foto
-  </button>
-  <button class="btn" id="h-nota" title="Dejar una nota (N)">
-    <svg viewBox="0 0 24 24"><path d="M4 3h16v13l-5 5H4V3Zm2 2v14h7v-4h4V5H6Z"/></svg>Nota
-  </button>
-  <span class="sep"></span>
-  <button class="btn" id="encuadrar" title="Encuadrar (E)">Encuadrar</button>
-  <span class="lectura" id="lectura">100%</span>
-  <button class="btn" id="menos">−</button>
-  <button class="btn" id="mas">+</button>
-  <span class="sep"></span>
-  <button class="btn" id="exportar" title="Descargar las marcas">Exportar</button>
-  <button class="btn" id="importar" title="Cargar marcas de un archivo">Importar</button>
-  <span class="sep"></span>
-  <span class="modo" id="modo" title="Dónde se están guardando las marcas">comprobando…</span>
+  <div class="herramientas">
+    <button class="btn activo" id="h-mover" title="Mover y seleccionar (V)">
+      <svg viewBox="0 0 24 24"><path d="M5 3 19 12 12.5 13.5 10 21 5 3Z"/></svg><span>Mover</span>
+    </button>
+    <button class="btn" id="h-foto" title="Insertar fotografía (F)">
+      <svg viewBox="0 0 24 24"><path d="M9 3 7.5 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.5L15 3H9Zm3 5.5A5.5 5.5 0 1 1 6.5 14 5.5 5.5 0 0 1 12 8.5Zm0 2A3.5 3.5 0 1 0 15.5 14 3.5 3.5 0 0 0 12 10.5Z"/></svg><span>Foto</span>
+    </button>
+    <button class="btn" id="h-nota" title="Dejar una nota (N)">
+      <svg viewBox="0 0 24 24"><path d="M4 3h16v13l-5 5H4V3Zm2 2v14h7v-4h4V5H6Z"/></svg><span>Nota</span>
+    </button>
+    <button class="btn solo-tactil" id="abrir-hoja" title="Más opciones" aria-expanded="false">
+      <svg viewBox="0 0 24 24"><path d="M12 5.5A1.75 1.75 0 1 1 12 2a1.75 1.75 0 0 1 0 3.5Zm0 8.25a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5ZM12 22a1.75 1.75 0 1 1 0-3.5A1.75 1.75 0 0 1 12 22Z"/></svg><span>Más</span>
+    </button>
+  </div>
+
+  <!-- En táctil estos controles se mudan a la hoja inferior (ver plano.js) -->
+  <div class="secundarios" id="secundarios">
+    <span class="sep"></span>
+    <button class="btn" id="encuadrar" title="Encuadrar (E)">Encuadrar</button>
+    <span class="zoom">
+      <button class="btn" id="menos" title="Alejar" aria-label="Alejar">−</button>
+      <span class="lectura" id="lectura">100%</span>
+      <button class="btn" id="mas" title="Acercar" aria-label="Acercar">+</button>
+    </span>
+    <span class="sep"></span>
+    <button class="btn" id="exportar" title="Descargar las marcas">Exportar</button>
+    <button class="btn" id="importar" title="Cargar marcas de un archivo">Importar</button>
+    <span class="sep"></span>
+    <span class="modo" id="modo" title="Dónde se están guardando las marcas">comprobando…</span>
+  </div>
 </footer>
+
+<!-- HOJA INFERIOR (solo en táctil) ----------------------------------->
+<div class="hoja oculta" id="hoja">
+  <div class="hoja-panel" role="dialog" aria-label="Más opciones">
+    <div class="hoja-cab">
+      <h2>Opciones</h2>
+      <button class="cerrar" id="cerrar-hoja" title="Cerrar">×</button>
+    </div>
+    <div class="hoja-cuerpo" id="hoja-cuerpo"></div>
+  </div>
+</div>
 
 <!-- PANEL DE LA MARCA ----------------------------------------------->
 <aside class="panel oculto" id="panel">

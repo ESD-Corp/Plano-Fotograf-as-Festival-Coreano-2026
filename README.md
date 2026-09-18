@@ -135,6 +135,17 @@ trabajando solo en local, con un aviso que lo explica.
 
 Sin `PLANO_CLAVE` definida nada cambia: las rutas quedan abiertas como hasta ahora.
 
+## En el móvil
+
+La barra de herramientas se ancla abajo, donde cae el pulgar, con cuatro destinos del tamaño
+de un dedo: **Mover**, **Foto**, **Nota** y **Más**. Todo lo que no se usa sobre el terreno
+—encuadrar, zoom, exportar, importar y dónde se están guardando las marcas— vive detrás de
+**Más**, en una hoja que sube desde el borde inferior.
+
+Las marcas del plano conservan su tamaño en pantalla pero admiten el toque en un radio mucho
+mayor, así que no hace falta afinar con la yema. El panel de una marca deja **Ver foto** y
+**Borrar** pegados al pie, siempre a la vista, y el resto se desplaza por debajo.
+
 ## Atajos
 
 | Tecla | Acción |

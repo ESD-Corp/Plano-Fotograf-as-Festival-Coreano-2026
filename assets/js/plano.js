@@ -192,15 +192,27 @@ function pintar() {
   pintarMarcas();
 }
 
-const ICONO_FOTO = '<svg viewBox="0 0 24 24"><path d="M9 3 7.5 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.5L15 3H9Zm3 5.5A5.5 5.5 0 1 1 6.5 14 5.5 5.5 0 0 1 12 8.5Zm0 2A3.5 3.5 0 1 0 15.5 14 3.5 3.5 0 0 0 12 10.5Z"/></svg>';
 const ICONO_NOTA = '<svg viewBox="0 0 24 24"><path d="M4 3h16v13l-5 5H4V3Zm2 2v14h7v-4h4V5H6Z"/></svg>';
 
-/* Cono de visión: indica hacia dónde apunta la cámara. */
-function cono(rumbo) {
-  return `<div class="cono"><svg width="124" height="124" style="transform:rotate(${rumbo}deg)">
+/* Las marcas se dibujan en píxeles de pantalla, no del plano: si no
+   encogen al alejar, cuarenta marcas se juntan en una mancha. Se atan al
+   zoom, con suelo para que no desaparezcan y techo para que no tapen el
+   dibujo por más que se amplíe. */
+const MARCA_MIN = 0.6, MARCA_MAX = 1.2;
+const escalaMarca = () => Math.min(MARCA_MAX, Math.max(MARCA_MIN, vista.z));
+
+/* Rumbo de la cámara. La aguja se ve siempre: es una línea y no estorba
+   aunque haya cuarenta. El cono abierto solo sale en la marca que se
+   señala o se abre, porque cuarenta cuñas superpuestas tapan el plano. */
+const aguja = (rumbo) =>
+  `<div class="aguja" style="transform:rotate(${rumbo}deg)"></div>`;
+
+function cono(rumbo, e) {
+  return `<div class="cono"><svg width="124" height="124"
+       style="transform:rotate(${rumbo}deg) scale(${e})">
     <path d="M62 62 L34 8 A62 62 0 0 1 90 8 Z"
-          fill="rgba(228,50,43,.22)" stroke="rgba(228,50,43,.7)" stroke-width="1.2"/>
-    <line x1="62" y1="62" x2="62" y2="12" stroke="rgba(228,50,43,.85)"
+          fill="rgba(228,50,43,.16)" stroke="rgba(228,50,43,.55)" stroke-width="1.2"/>
+    <line x1="62" y1="62" x2="62" y2="12" stroke="rgba(228,50,43,.8)"
           stroke-width="1.2" stroke-dasharray="3 3"/>
   </svg></div>`;
 }
@@ -208,6 +220,7 @@ function cono(rumbo) {
 function pintarMarcas() {
   capa.textContent = '';
   const lista = borrador ? marcas.concat([borrador]) : marcas;
+  const e = escalaMarca();
 
   lista.forEach(m => {
     const [sx, sy] = aPantalla(m.x, m.y);
@@ -222,9 +235,15 @@ function pintarMarcas() {
                 + (seleccion === m.id ? ' activa' : '');
     d.style.left = sx + 'px';
     d.style.top  = sy + 'px';
+    d.style.setProperty('--e', e);
     d.dataset.id = m.id;
-    d.innerHTML = (m.tipo === 'foto' && !pendiente ? cono(m.rumbo || 0) : '')
-      + '<div class="punto">' + (m.tipo === 'nota' ? ICONO_NOTA : ICONO_FOTO) + '</div>'
+
+    /* La marca de fotografía es un punto liso: a este tamaño un icono de
+       cámara no se lee, solo ensucia. El tipo lo dicen el color y la
+       forma, y el rótulo al señalarla. */
+    const rumbo = m.rumbo || 0;
+    d.innerHTML = (m.tipo === 'foto' && !pendiente ? aguja(rumbo) + cono(rumbo, e) : '')
+      + '<div class="punto">' + (m.tipo === 'nota' ? ICONO_NOTA : '') + '</div>'
       + (m.titulo ? `<div class="rotulo">${escapar(m.titulo)}</div>` : '');
     capa.appendChild(d);
 
@@ -234,8 +253,9 @@ function pintarMarcas() {
       const g = document.createElement('div');
       g.className = 'giro';
       g.dataset.giro = m.id;
-      g.style.left = (sx + Math.sin(r) * 58) + 'px';
-      g.style.top  = (sy - Math.cos(r) * 58) + 'px';
+      const radio = 58 * e;
+      g.style.left = (sx + Math.sin(r) * radio) + 'px';
+      g.style.top  = (sy - Math.cos(r) * radio) + 'px';
       capa.appendChild(g);
     }
   });
@@ -302,6 +322,7 @@ const punteros = new Map();
 let arrastre = null, pinza = null, orientando = null, moviendo = null, girando = null;
 
 lienzo.addEventListener('pointerdown', e => {
+  cerrarGlobo();
   const marca = e.target.closest('.marca');
   const tirador = e.target.closest('.giro');
   try { lienzo.setPointerCapture(e.pointerId); } catch (err) { /* puntero sintético */ }
@@ -414,7 +435,8 @@ function soltar(e) {
       seleccion = m.id;
       if (m.tipo === 'foto') abrirVisor(m); else abrirPanel();
     } else {
-      seleccion = m.id; abrirPanel();
+      seleccion = m.id;
+      if (m.tipo === 'foto') abrirGlobo(m); else abrirPanel();
     }
     moviendo = null;
   }
@@ -428,6 +450,7 @@ lienzo.addEventListener('pointercancel', soltar);
 
 lienzo.addEventListener('wheel', e => {
   e.preventDefault();
+  cerrarGlobo();
   zoom(Math.exp(-e.deltaY * (e.ctrlKey ? .012 : .0022)), e.clientX, e.clientY);
 }, { passive: false });
 
@@ -614,6 +637,7 @@ function abrirPanel() {
   alternarGaleria(false);
   alternarHoja(false);
   alternarCapas(false);
+  cerrarGlobo();
   $('#panel').classList.remove('oculto');
   $('#panel-titulo').textContent = m.tipo === 'foto' ? 'Fotografía' : 'Nota';
   $('#f-titulo').value = m.titulo || '';
@@ -668,7 +692,84 @@ $('#borrar-marca').addEventListener('click', () => {
   if (!m) return;
   marcas = marcas.filter(x => x.id !== m.id);
   olvidarPreview(m.id);
+  cerrarGlobo();
   guardarLocal(); borrarEnNube(m.id); cerrarPanel(); refrescarInventario();
+});
+
+/* --- globo de la marca ---------------------------------------------
+   Tocar una fotografía la abre junto a su punto. El panel del borde
+   sigue estando para editarla, pero deja de ser lo primero que sale:
+   mirar una foto es lo que más se hace y no debería mover la vista al
+   otro extremo de la pantalla.
+   ------------------------------------------------------------------ */
+const MARGEN_GLOBO = 12;
+
+function abrirGlobo(m) {
+  const globo = $('#globo');
+  const [sx, sy] = aPantalla(m.x, m.y);
+
+  const imagen = $('#globo-imagen');
+  const ruta = rutaFoto(m);
+  imagen.textContent = '';
+  if (ruta) {
+    const img = document.createElement('img');
+    img.src = ruta;
+    img.alt = m.titulo || '';
+    img.addEventListener('error',
+      () => imagen.replaceChildren(sinImagen('No se encuentra el archivo')));
+    imagen.appendChild(img);
+  } else {
+    imagen.appendChild(sinImagen('Todavía sin fotografía'));
+  }
+
+  $('#globo-titulo').textContent = m.titulo || 'Sin título';
+  $('#globo-rumbo').textContent = m.situada
+    ? 'Cámara hacia ' + Math.round(m.rumbo || 0) + '° ' + cardinal(m.rumbo || 0)
+    : 'Sin situar';
+
+  /* Se mide con el globo ya visible: antes no tiene alto. */
+  globo.classList.remove('oculto');
+  globo.style.visibility = 'hidden';
+  const { width: an, height: al } = globo.getBoundingClientRect();
+
+  const izq = Math.min(innerWidth - an - MARGEN_GLOBO,
+                       Math.max(MARGEN_GLOBO, sx - an / 2));
+  /* Encima del punto si cabe; si no, debajo. */
+  const arribaLibre = sy - alturaMenu() - MARGEN_GLOBO;
+  const encima = arribaLibre >= al + 14;
+  const sup = encima ? sy - al - 14 : Math.min(innerHeight - al - MARGEN_GLOBO, sy + 18);
+
+  globo.style.left = izq + 'px';
+  globo.style.top = sup + 'px';
+  /* El origen de la escala apunta al punto tocado: el globo crece
+     desde la marca y no desde su propio centro. */
+  globo.style.setProperty('--ox', (sx - izq) + 'px');
+  globo.style.setProperty('--oy', (encima ? al : 0) + 'px');
+  globo.style.visibility = '';
+
+  /* Reiniciar la animación aunque ya estuviera abierto en otra marca. */
+  globo.style.animation = 'none';
+  void globo.offsetWidth;
+  globo.style.animation = '';
+}
+
+function cerrarGlobo() {
+  $('#globo').classList.add('oculto');
+}
+
+const globoAbierto = () => !$('#globo').classList.contains('oculto');
+
+$('#globo-imagen').addEventListener('click', () => {
+  const m = marcas.find(x => x.id === seleccion);
+  if (m) abrirVisor(m);
+});
+$('#globo-ver').addEventListener('click', () => {
+  const m = marcas.find(x => x.id === seleccion);
+  if (m) abrirVisor(m);
+});
+$('#globo-editar').addEventListener('click', () => {
+  cerrarGlobo();
+  abrirPanel();
 });
 
 /* --- visor -------------------------------------------------------- */
@@ -705,7 +806,10 @@ function alternarGaleria(abrir) {
   $('#galeria').classList.toggle('oculta', !mostrar);
   $('#abrir-galeria').classList.toggle('activo', mostrar);
   /* La galería ocupa todo el ancho y taparía el panel de la marca. */
-  if (mostrar) { cerrarPanel(); alternarHoja(false); alternarCapas(false); pintarGaleria(); }
+  if (mostrar) {
+    cerrarPanel(); cerrarGlobo(); alternarHoja(false); alternarCapas(false);
+    pintarGaleria();
+  }
 }
 
 const sinImagen = (texto) => Object.assign(document.createElement('span'),
@@ -1052,7 +1156,8 @@ function alternarCapas(abrir) {
   $('#capas').classList.toggle('oculta', !mostrar);
   $('#abrir-capas').classList.toggle('activo', mostrar);
   if (mostrar) {
-    cerrarPanel(); alternarGaleria(false); alternarHoja(false); pintarCapas();
+    cerrarPanel(); cerrarGlobo(); alternarGaleria(false); alternarHoja(false);
+    pintarCapas();
   }
 }
 
@@ -1112,8 +1217,8 @@ addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
   const k = e.key.toLowerCase();
   if (k === 'escape') {
-    cerrarVisor(); cerrarPanel(); alternarGaleria(false); alternarHoja(false);
-    alternarCapas(false); elegirHerramienta('mover');
+    cerrarVisor(); cerrarGlobo(); cerrarPanel(); alternarGaleria(false);
+    alternarHoja(false); alternarCapas(false); elegirHerramienta('mover');
   }
   if (k === 'v') elegirHerramienta('mover');
   if (k === 'f') elegirHerramienta('foto');

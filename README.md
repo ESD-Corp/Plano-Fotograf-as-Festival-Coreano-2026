@@ -19,8 +19,25 @@ su marca en ese punto y solo queda orientarla.
 
 ## Ver las fotografías
 
-**Doble clic** en cualquier marca roja abre la imagen a pantalla completa, con su título, su
-nota y el rumbo de la cámara.
+**Un toque** en una marca roja la abre ahí mismo, en un globo junto a su punto: la miniatura,
+el título y el rumbo, con **Ver foto** para ampliarla y **Editar** para abrir su panel. El
+globo crece desde el punto que has tocado y se voltea solo si no cabe por arriba.
+
+**Doble clic** salta directo a la imagen a pantalla completa.
+
+## Cómo se leen las marcas
+
+Una marca es un punto, no un icono: a este tamaño un dibujo de cámara no se lee y solo
+ensucia. El tipo lo dicen el color y la forma — **rojo redondo** una fotografía, **ámbar
+cuadrado** una nota, **ámbar discontinuo** una foto sin situar.
+
+Del rumbo sale siempre una **aguja**, una línea fina. El **cono** abierto, que es el campo de
+visión, solo aparece en la marca que señalas o abres: con cuarenta fotos a la vez, cuarenta
+conos superpuestos tapaban el plano entero.
+
+Las marcas encogen y crecen con el zoom, entre un suelo y un techo. Así no se amontonan al
+alejar el plano ni lo tapan al ampliarlo. En pantalla táctil el punto encoge pero el destino
+del dedo no: sigue siendo de 44 px.
 
 ## La galería
 
@@ -53,7 +70,8 @@ mira a ninguna parte.
 ## Corregir una marca
 
 Con la herramienta **Mover**: arrástrala para reubicarla, o selecciónala y usa el **tirador
-blanco** para girar el cono. Un clic abre su panel; **Supr** la borra.
+blanco** para girar el cono. En una nota, un toque abre su panel; en una fotografía, **Editar**
+dentro del globo. **Supr** borra la marca seleccionada.
 
 ## Dónde viven las fotos
 

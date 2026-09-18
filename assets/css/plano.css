@@ -39,43 +39,66 @@ html,body{
 
 /* --- marcas ------------------------------------------------------- */
 .marca{ position:absolute; pointer-events:auto; cursor:pointer;
-        transform:translate(-50%,-50%); }
-.marca .cono{ position:absolute; left:50%; top:50%; width:0; height:0; }
+        transform:translate(-50%,-50%); --e:1; }
+
+/* El cono abierto solo sale en la marca que se señala o se abre: con
+   cuarenta a la vez el plano desaparecía bajo las cuñas. */
+.marca .cono{
+  position:absolute; left:50%; top:50%; width:0; height:0;
+  opacity:0; transition:opacity .13s;
+}
 .marca .cono svg{ position:absolute; left:-62px; top:-62px;
                   transform-origin:62px 62px; }
+.marca:hover .cono, .marca.activa .cono{ opacity:1; }
+
+/* La aguja sí se ve siempre: una línea da el rumbo de un vistazo sin
+   pintar el plano de rojo. Cede el sitio cuando aparece el cono. */
+.marca .aguja{ position:absolute; left:50%; top:50%; width:0; height:0;
+               transition:opacity .13s; }
+.marca .aguja::before{
+  content:''; position:absolute; left:-.5px;
+  bottom:calc(4px * var(--e)); width:1px; height:calc(14px * var(--e));
+  background:linear-gradient(to top, rgba(228,50,43,.95), rgba(228,50,43,0));
+}
+.marca:hover .aguja, .marca.activa .aguja{ opacity:0; }
 /* La marca de fotografía va a la mitad de su tamaño anterior para que el
    dibujo se lea por debajo. Lo que se encoge es el punto, no la zona
    sensible: el toque sigue teniendo 44 px (ver el bloque de puntero
    grueso al final). */
 .marca .punto{
-  position:relative; width:10px; height:10px; border-radius:50%;
-  background:var(--foto); border:1px solid #fff;
+  position:relative; width:calc(10px * var(--e)); height:calc(10px * var(--e));
+  border-radius:50%; background:var(--foto); border:1px solid #fff;
   display:grid; place-items:center;
-  box-shadow:0 0 0 1.5px rgba(228,50,43,.22), 0 1px 5px rgba(0,0,0,.7);
+  box-shadow:0 0 0 calc(1.5px * var(--e)) rgba(228,50,43,.22),
+             0 1px 5px rgba(0,0,0,.7);
   transition:transform .13s;
 }
 .marca:hover .punto{ transform:scale(1.18); }
 .marca.activa .punto{ transform:scale(1.3);
-  box-shadow:0 0 0 2.5px rgba(228,50,43,.3), 0 1px 7px rgba(0,0,0,.8); }
-.marca .punto svg{ width:5px; height:5px; fill:#fff; }
+  box-shadow:0 0 0 calc(2.5px * var(--e)) rgba(228,50,43,.3),
+             0 1px 7px rgba(0,0,0,.8); }
 
 /* Las notas conservan su tamaño: solo se pidió encoger las de cámara. */
 .marca.es-nota .punto{
-  background:var(--nota); box-shadow:0 0 0 3px rgba(217,184,92,.2),
+  background:var(--nota);
+  box-shadow:0 0 0 calc(3px * var(--e)) rgba(217,184,92,.2),
   0 2px 8px rgba(0,0,0,.7); border-radius:2px; border-width:1.5px;
-  width:17px; height:17px;
+  width:calc(17px * var(--e)); height:calc(17px * var(--e));
 }
-.marca.es-nota .punto svg{ width:10px; height:10px; fill:#241d07; }
+.marca.es-nota .punto svg{
+  width:calc(10px * var(--e)); height:calc(10px * var(--e)); fill:#241d07;
+}
 
 /* Foto añadida desde la galería, aún sin situar: borde discontinuo para
    que se vea de un vistazo que ese punto no es el de la toma. */
 .marca.pendiente .punto{
   background:var(--nota); border-style:dashed;
-  box-shadow:0 0 0 3px rgba(217,184,92,.22), 0 2px 8px rgba(0,0,0,.7);
+  box-shadow:0 0 0 calc(2px * var(--e)) rgba(217,184,92,.22),
+             0 1px 5px rgba(0,0,0,.7);
 }
-.marca.pendiente .punto svg{ fill:#241d07; }
 .marca.pendiente.activa .punto{
-  box-shadow:0 0 0 5px rgba(217,184,92,.32), 0 2px 12px rgba(0,0,0,.8);
+  box-shadow:0 0 0 calc(3px * var(--e)) rgba(217,184,92,.32),
+             0 1px 7px rgba(0,0,0,.8);
 }
 .marca .rotulo{
   position:absolute; left:15px; top:50%; transform:translateY(-50%);
@@ -398,6 +421,57 @@ input[type=range]:focus-visible{ outline:2px solid var(--foto); outline-offset:4
 .acciones .btn{ flex:1; justify-content:center; }
 .btn-fuerte{ border-color:var(--foto); color:#fff; background:var(--foto-tenue); }
 .btn-borrar:hover{ border-color:var(--foto); color:var(--foto); }
+
+/* --- globo de la marca ---------------------------------------------
+   Tocar una fotografía la abre aquí mismo, junto a su punto, en vez de
+   mandar la vista a un panel del borde. Entra desde el punto que se ha
+   tocado: la escala arranca en el origen que fija el guion, con un
+   rebase mínimo y la curva de apertura de iOS.
+   ------------------------------------------------------------------ */
+.globo{
+  position:fixed; z-index:28; width:238px;
+  background:var(--panel); border:1px solid var(--linea); border-radius:3px;
+  backdrop-filter:blur(20px); overflow:hidden;
+  box-shadow:0 20px 56px rgba(0,0,0,.62), 0 2px 10px rgba(0,0,0,.5);
+  transform-origin:var(--ox,50%) var(--oy,100%);
+  animation:globo-entra .34s cubic-bezier(.32,.72,0,1) both;
+}
+.globo.oculto{ display:none; }
+
+@keyframes globo-entra{
+  from{ opacity:0; transform:scale(.84); }
+  58% { opacity:1; transform:scale(1.018); }
+  to  { opacity:1; transform:scale(1); }
+}
+@media (prefers-reduced-motion:reduce){
+  .globo{ animation:none; }
+}
+
+.globo-imagen{
+  display:block; width:100%; aspect-ratio:4/3; padding:0; border:none;
+  border-bottom:1px solid var(--linea); background:#0f0f11;
+  cursor:pointer; position:relative; overflow:hidden;
+}
+.globo-imagen img{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; display:block;
+}
+.globo-imagen .sin{
+  position:absolute; inset:0; display:grid; place-items:center;
+  font-size:8.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--texto-3); text-align:center; padding:12px; line-height:1.8;
+}
+.globo-pie{ padding:11px 13px 0; }
+.globo-pie h3{
+  margin:0; font-size:11px; font-weight:400; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--texto);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.globo-rumbo{
+  margin:5px 0 0; font-size:9px; letter-spacing:.18em; color:var(--texto-3);
+}
+.globo-acciones{ display:flex; gap:7px; padding:11px 13px 13px; }
+.globo-acciones .btn{ flex:1; justify-content:center; }
 
 /* --- visor de fotografía ------------------------------------------ */
 .visor{

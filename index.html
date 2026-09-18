@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Plano Fray Antón</title>
+<link rel="stylesheet" href="assets/css/plano.css">
+</head>
+<body>
+
+<div id="lienzo">
+  <img id="mapa" src="fondo/plano-fondo.svg" alt="Plano del Monumento a Fray Antón">
+  <div id="marcas"></div>
+</div>
+
+<div class="aviso oculto" id="aviso"></div>
+
+<!-- HERRAMIENTAS ---------------------------------------------------->
+<footer class="barra">
+  <button class="btn activo" id="h-mover" title="Mover y seleccionar (V)">
+    <svg viewBox="0 0 24 24"><path d="M5 3 19 12 12.5 13.5 10 21 5 3Z"/></svg>Mover
+  </button>
+  <button class="btn" id="h-foto" title="Insertar fotografía (F)">
+    <svg viewBox="0 0 24 24"><path d="M9 3 7.5 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.5L15 3H9Zm3 5.5A5.5 5.5 0 1 1 6.5 14 5.5 5.5 0 0 1 12 8.5Zm0 2A3.5 3.5 0 1 0 15.5 14 3.5 3.5 0 0 0 12 10.5Z"/></svg>Foto
+  </button>
+  <button class="btn" id="h-nota" title="Dejar una nota (N)">
+    <svg viewBox="0 0 24 24"><path d="M4 3h16v13l-5 5H4V3Zm2 2v14h7v-4h4V5H6Z"/></svg>Nota
+  </button>
+  <span class="sep"></span>
+  <button class="btn" id="encuadrar" title="Encuadrar (E)">Encuadrar</button>
+  <span class="lectura" id="lectura">100%</span>
+  <button class="btn" id="menos">−</button>
+  <button class="btn" id="mas">+</button>
+  <span class="sep"></span>
+  <button class="btn" id="exportar" title="Descargar las marcas">Exportar</button>
+  <button class="btn" id="importar" title="Cargar marcas de un archivo">Importar</button>
+  <span class="sep"></span>
+  <span class="modo" id="modo" title="Dónde se están guardando las marcas">comprobando…</span>
+</footer>
+
+<!-- PANEL DE LA MARCA ----------------------------------------------->
+<aside class="panel oculto" id="panel">
+  <div class="panel-cab">
+    <h2 id="panel-titulo">Fotografía</h2>
+    <button class="cerrar" id="cerrar-panel" title="Cerrar">×</button>
+  </div>
+  <div class="panel-cuerpo">
+    <div id="bloque-foto">
+      <label class="campo">
+        <span>Imagen</span>
+        <div class="zona-archivo" id="zona-archivo"></div>
+      </label>
+    </div>
+    <label class="campo">
+      <span>Título</span>
+      <input type="text" id="f-titulo" placeholder="Vista desde el muro oeste">
+    </label>
+    <label class="campo">
+      <span>Nota</span>
+      <textarea id="f-nota" placeholder="Lo que conviene recordar de este punto"></textarea>
+    </label>
+    <div class="acciones">
+      <button class="btn btn-fuerte" id="ver-foto">Ver foto</button>
+      <button class="btn btn-borrar" id="borrar-marca">Borrar</button>
+    </div>
+  </div>
+</aside>
+
+<!-- VISOR ----------------------------------------------------------->
+<div class="visor oculto" id="visor">
+  <button class="visor-cerrar" id="visor-cerrar">×</button>
+  <div id="visor-cuerpo"></div>
+  <div class="visor-pie">
+    <h3 id="visor-titulo"></h3>
+    <p id="visor-nota"></p>
+    <div class="rumbo" id="visor-rumbo"></div>
+  </div>
+</div>
+
+<div class="ayuda" id="ayuda">
+  <b>arrastrar</b> mover · <b>rueda</b> zoom · <b>doble clic</b> en una marca abre la foto<br>
+  <b>F</b> foto · <b>N</b> nota · <b>V</b> mover · <b>E</b> encuadrar · <b>H</b> ocultar
+</div>
+
+<input type="file" id="entrada-archivo" accept="image/*" hidden>
+<input type="file" id="entrada-json" accept="application/json,.json" hidden>
+
+<script src="assets/js/plano.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "plano-fotografias-festival-coreano",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@vercel/blob": "^2.8.0"
+  }
+}

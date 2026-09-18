@@ -9,6 +9,7 @@
    el tope efectivo son 3 MB de imagen.
    ================================================================== */
 import { put } from '@vercel/blob';
+import { hayBlob, credenciales } from '../lib/blob.js';
 
 const TOPE = 3 * 1024 * 1024;
 const FORMATOS = /^image\/(jpeg|png|webp)$/;
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no admitido' });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!hayBlob()) {
     return res.status(503).json({
       nube: false,
       razon: 'Este proyecto no tiene Blob store conectado',
@@ -47,12 +48,13 @@ export default async function handler(req, res) {
 
     // Nombre legible en el panel de Vercel; el sufijo aleatorio evita choques.
     const limpio = String(nombre || 'foto')
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^\w.\-]+/g, '-')
       .replace(/-+/g, '-')
       .slice(0, 80) || 'foto';
 
     const { url } = await put(`fotos/${limpio}`, binario, {
+      ...credenciales(),
       access: 'public',
       contentType: tipo,
       addRandomSuffix: true,
